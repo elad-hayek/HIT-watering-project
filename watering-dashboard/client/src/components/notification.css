@@ -4,6 +4,11 @@
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   max-width: 1000px;
   margin: 0 auto;
+  transition: background 0.3s ease;
+}
+
+[data-theme="dark"] .notification-container {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
 }
 
 .notification-loading {
@@ -40,6 +45,11 @@
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+[data-theme="dark"] .notification-header {
+  background: #2d2d2d;
 }
 
 .notification-header h2 {
@@ -49,6 +59,11 @@
   align-items: center;
   gap: 10px;
   font-size: 1.5em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .notification-header h2 {
+  color: #4caf50;
 }
 
 .btn-refresh {
@@ -65,9 +80,18 @@
   gap: 8px;
 }
 
+[data-theme="dark"] .btn-refresh {
+  background: #4caf50;
+  color: #1a1a1a;
+}
+
 .btn-refresh:hover {
   background: #1f3a0f;
   transform: translateY(-2px);
+}
+
+[data-theme="dark"] .btn-refresh:hover {
+  background: #45a049;
 }
 
 .no-logs {
@@ -81,6 +105,12 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   color: #999;
   text-align: center;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .no-logs {
+  background: #2d2d2d;
+  color: #b0b0b0;
 }
 
 .no-logs i {
@@ -106,6 +136,12 @@
   border-left: 4px solid transparent;
 }
 
+[data-theme="dark"] .log-item {
+  background: #2d2d2d;
+  color: #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 .log-item:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateX(5px);
@@ -118,6 +154,11 @@
   justify-content: center;
   min-width: 50px;
   color: #2d5016;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .log-icon {
+  color: #4caf50;
 }
 
 .log-content {
@@ -130,12 +171,22 @@
   text-transform: uppercase;
   font-size: 0.95em;
   font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .log-content h4 {
+  color: #e0e0e0;
 }
 
 .log-content p {
   margin: 5px 0;
   color: #666;
   font-size: 0.9em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .log-content p {
+  color: #b0b0b0;
 }
 
 .log-time {
@@ -143,6 +194,11 @@
   margin-top: 10px;
   color: #999;
   font-size: 0.85em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .log-time {
+  color: #b0b0b0;
 }
 
 .log-time i {

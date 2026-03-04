@@ -12,6 +12,10 @@ import "./App.css";
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("darkMode");
+    return saved ? JSON.parse(saved) : false;
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem("user");
@@ -25,6 +29,15 @@ export default function App() {
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem("darkMode", JSON.stringify(darkMode));
+    if (darkMode) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }, [darkMode]);
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -35,7 +48,12 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header user={user} setUser={setUser} />
+      <Header
+        user={user}
+        setUser={setUser}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />
       <Routes>
         <Route
           path="/"

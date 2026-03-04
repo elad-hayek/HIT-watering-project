@@ -1,7 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./AddPlantButton.css";
 
-export default function AddPlantButton({ areaId, onPlantCreated, user }) {
+export default function AddPlantButton({
+  areaId,
+  onPlantCreated,
+  user,
+  mapCoordinates,
+  onMapCoordinatesUsed,
+}) {
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState("");
@@ -11,6 +17,13 @@ export default function AddPlantButton({ areaId, onPlantCreated, user }) {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Auto-open modal when map coordinates are selected
+  useEffect(() => {
+    if (mapCoordinates) {
+      setShowModal(true);
+    }
+  }, [mapCoordinates]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,8 +48,8 @@ export default function AddPlantButton({ areaId, onPlantCreated, user }) {
           areaId,
           name,
           type,
-          lat: 0,
-          lng: 0,
+          lat: mapCoordinates?.lat || 0,
+          lng: mapCoordinates?.lng || 0,
           wateringFrequencyDays: parseInt(wateringFreq),
           status,
           soilMoisture: soilMoisture ? parseInt(soilMoisture) : null,
@@ -59,6 +72,9 @@ export default function AddPlantButton({ areaId, onPlantCreated, user }) {
       setNotes("");
       setShowModal(false);
       setLoading(false);
+      if (onMapCoordinatesUsed) {
+        onMapCoordinatesUsed();
+      }
       onPlantCreated();
     } catch (err) {
       setError("Connection error: " + err.message);
@@ -86,6 +102,18 @@ export default function AddPlantButton({ areaId, onPlantCreated, user }) {
             </div>
 
             {error && <div className="error-message">{error}</div>}
+
+            {mapCoordinates ? (
+              <div className="success-message">
+                ✓ Location selected on map: ({mapCoordinates.lat.toFixed(4)},{" "}
+                {mapCoordinates.lng.toFixed(4)})
+              </div>
+            ) : (
+              <div className="info-message">
+                ℹ️ First, close this form and click on the map to place the
+                plant
+              </div>
+            )}
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">

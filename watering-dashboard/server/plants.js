@@ -62,7 +62,7 @@ router.post("/", (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  if (!areaId || !name || !lat || !lng) {
+  if (!areaId || !name || lat == null || lng == null) {
     return res
       .status(400)
       .json({ error: "Area ID, name, and coordinates are required" });

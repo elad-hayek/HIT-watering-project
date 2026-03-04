@@ -13,9 +13,18 @@
   gap: 8px;
 }
 
+[data-theme="dark"] .add-plant-btn {
+  background: #4caf50;
+  color: #1a1a1a;
+}
+
 .add-plant-btn:hover {
   background: #1f3a0f;
   transform: translateY(-2px);
+}
+
+[data-theme="dark"] .add-plant-btn:hover {
+  background: #45a049;
 }
 
 .modal-overlay {
@@ -30,6 +39,10 @@
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.3s ease;
+}
+
+[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
 }
 
 @keyframes fadeIn {
@@ -51,6 +64,13 @@
   animation: slideUp 0.3s ease;
   max-height: 90vh;
   overflow-y: auto;
+  transition: background-color 0.3s ease;
+}
+
+[data-theme="dark"] .modal-content {
+  background: #2d2d2d;
+  color: #e0e0e0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
 }
 
 @keyframes slideUp {
@@ -71,12 +91,22 @@
   margin-bottom: 25px;
   border-bottom: 2px solid #f0f0f0;
   padding-bottom: 15px;
+  transition: border-color 0.3s ease;
+}
+
+[data-theme="dark"] .modal-header {
+  border-bottom-color: #404040;
 }
 
 .modal-header h3 {
   margin: 0;
   color: #2d5016;
   font-size: 1.5em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .modal-header h3 {
+  color: #4caf50;
 }
 
 .modal-close {
@@ -103,6 +133,11 @@
   color: #333;
   font-weight: 600;
   font-size: 0.95em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .form-group label {
+  color: #e0e0e0;
 }
 
 .form-group input,
@@ -115,6 +150,16 @@
   font-size: 1em;
   font-family: inherit;
   transition: all 0.3s ease;
+  background: white;
+  color: #333;
+}
+
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .form-group textarea {
+  background: #3a3a3a;
+  color: #e0e0e0;
+  border-color: #404040;
 }
 
 .form-group input:focus,
@@ -125,6 +170,13 @@
   box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.1);
 }
 
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group select:focus,
+[data-theme="dark"] .form-group textarea:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
 .error-message {
   background: #fee;
   color: #c33;
@@ -133,6 +185,47 @@
   margin-bottom: 15px;
   border-left: 4px solid #c33;
   font-size: 0.9em;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .error-message {
+  background: #4a1a1a;
+  color: #ff9999;
+  border-left-color: #ff6666;
+}
+
+.success-message {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border-left: 4px solid #4caf50;
+  font-size: 0.9em;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .success-message {
+  background: #1b5e20;
+  color: #81c784;
+  border-left-color: #4caf50;
+}
+
+.info-message {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border-left: 4px solid #2196f3;
+  font-size: 0.9em;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .info-message {
+  background: #0d47a1;
+  color: #90caf9;
+  border-left-color: #2196f3;
 }
 
 .modal-actions {
@@ -155,6 +248,12 @@
 .btn-primary {
   background: #2d5016;
   color: white;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .btn-primary {
+  background: #4caf50;
+  color: #1a1a1a;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -162,13 +261,27 @@
   transform: translateY(-2px);
 }
 
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  background: #45a049;
+}
+
 .btn-cancel {
   background: #f0f0f0;
   color: #333;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .btn-cancel {
+  background: #3a3a3a;
+  color: #e0e0e0;
 }
 
 .btn-cancel:hover {
   background: #e0e0e0;
+}
+
+[data-theme="dark"] .btn-cancel:hover {
+  background: #454545;
 }
 
 .btn:disabled {
@@ -187,4 +300,9 @@
 ::-webkit-scrollbar-thumb {
   background: #2d5016;
   border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #4caf50;
 }

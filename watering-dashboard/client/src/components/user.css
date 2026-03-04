@@ -5,6 +5,11 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  transition: background 0.3s ease;
+}
+
+[data-theme="dark"] .user-container {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
 }
 
 .user-loading {
@@ -39,6 +44,13 @@
   width: 100%;
   max-width: 600px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+[data-theme="dark"] .user-profile {
+  background: #2d2d2d;
+  color: #e0e0e0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 .profile-header {
@@ -47,6 +59,11 @@
   margin-bottom: 40px;
   padding-bottom: 30px;
   border-bottom: 2px solid #f0f0f0;
+  transition: border-color 0.3s ease;
+}
+
+[data-theme="dark"] .profile-header {
+  border-bottom-color: #404040;
 }
 
 .profile-avatar {
@@ -54,24 +71,44 @@
   color: #2d5016;
   margin-right: 30px;
   line-height: 1;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .profile-avatar {
+  color: #4caf50;
 }
 
 .profile-info h2 {
   margin: 0 0 10px 0;
   color: #333;
   font-size: 1.8em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .profile-info h2 {
+  color: #e0e0e0;
 }
 
 .user-id {
   margin: 5px 0;
   color: #999;
   font-size: 0.9em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .user-id {
+  color: #b0b0b0;
 }
 
 .user-title {
   margin: 5px 0;
   color: #666;
   font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .user-title {
+  color: #b0b0b0;
 }
 
 .message {
@@ -115,6 +152,11 @@
   color: #333;
   font-weight: 600;
   font-size: 0.95em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .form-group label {
+  color: #e0e0e0;
 }
 
 .form-group input {
@@ -124,12 +166,25 @@
   font-size: 1em;
   font-family: inherit;
   transition: all 0.3s ease;
+  background: white;
+  color: #333;
+}
+
+[data-theme="dark"] .form-group input {
+  background: #3a3a3a;
+  color: #e0e0e0;
+  border-color: #404040;
 }
 
 .form-group input:focus {
   outline: none;
   border-color: #2d5016;
   box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.1);
+}
+
+[data-theme="dark"] .form-group input:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 .btn {
@@ -145,9 +200,18 @@
   transition: all 0.3s ease;
 }
 
+[data-theme="dark"] .btn {
+  background: #4caf50;
+  color: #1a1a1a;
+}
+
 .btn:hover:not(:disabled) {
   background: #1f3a0f;
   transform: translateY(-2px);
+}
+
+[data-theme="dark"] .btn:hover:not(:disabled) {
+  background: #45a049;
 }
 
 .btn:disabled {
@@ -160,6 +224,12 @@
   padding: 20px;
   border-radius: 8px;
   border-top: 3px solid #2d5016;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .profile-stats {
+  background: #3a3a3a;
+  border-top-color: #4caf50;
 }
 
 .stat {
@@ -168,11 +238,21 @@
   gap: 15px;
   color: #666;
   font-size: 0.95em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .stat {
+  color: #b0b0b0;
 }
 
 .stat i {
   color: #2d5016;
   font-size: 1.5em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .stat i {
+  color: #4caf50;
 }
 
 @media (max-width: 768px) {

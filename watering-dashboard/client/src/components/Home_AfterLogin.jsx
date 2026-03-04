@@ -18,6 +18,7 @@ export default function HomeAfterLogin({ user }) {
   const [editingPlant, setEditingPlant] = useState(null);
   const [showDetailMap, setShowDetailMap] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mapCoordinates, setMapCoordinates] = useState(null);
 
   useEffect(() => {
     loadAreas();
@@ -50,7 +51,7 @@ export default function HomeAfterLogin({ user }) {
   const handleSelectArea = (area) => {
     setSelectedArea(area);
     loadPlants(area.id);
-    setShowDetailMap(false);
+    setShowDetailMap(true);
   };
 
   const handleNewArea = async () => {
@@ -127,6 +128,11 @@ export default function HomeAfterLogin({ user }) {
         console.error("Error deleting plant:", err);
       }
     }
+  };
+
+  const handleMapClick = ({ lat, lng }) => {
+    setMapCoordinates({ lat, lng });
+    setShowAddPlantModal(true);
   };
 
   if (loading) {
@@ -211,6 +217,8 @@ export default function HomeAfterLogin({ user }) {
                     areaId={selectedArea.id}
                     onPlantCreated={handleAddPlant}
                     user={user}
+                    mapCoordinates={mapCoordinates}
+                    onMapCoordinatesUsed={() => setMapCoordinates(null)}
                   />
                 </div>
               </div>
@@ -221,6 +229,7 @@ export default function HomeAfterLogin({ user }) {
                     area={selectedArea}
                     plants={plants}
                     user={user}
+                    onMapClick={handleMapClick}
                   />
                 </div>
               )}

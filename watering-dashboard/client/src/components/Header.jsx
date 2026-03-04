@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Header.css";
 
-export default function Header({ user, setUser }) {
+export default function Header({ user, setUser, darkMode, setDarkMode }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -28,6 +28,13 @@ export default function Header({ user, setUser }) {
               <Link to="/user" className="nav-link">
                 <i className="fas fa-user"></i> Profile
               </Link>
+              <button
+                className="nav-link theme-toggle"
+                onClick={() => setDarkMode(!darkMode)}
+                title={darkMode ? "Light Mode" : "Dark Mode"}
+              >
+                <i className={darkMode ? "fas fa-sun" : "fas fa-moon"}></i>
+              </button>
               <button onClick={handleLogout} className="nav-link logout-btn">
                 <i className="fas fa-sign-out-alt"></i> Logout
               </button>
@@ -43,6 +50,13 @@ export default function Header({ user, setUser }) {
               <Link to="/register" className="nav-link">
                 <i className="fas fa-user-plus"></i> Register
               </Link>
+              <button
+                className="nav-link theme-toggle"
+                onClick={() => setDarkMode(!darkMode)}
+                title={darkMode ? "Light Mode" : "Dark Mode"}
+              >
+                <i className={darkMode ? "fas fa-sun" : "fas fa-moon"}></i>
+              </button>
             </>
           )}
         </nav>

@@ -13,9 +13,17 @@
   transition: all 0.3s ease;
 }
 
+[data-theme="dark"] .add-area-btn {
+  background: #4caf50;
+}
+
 .add-area-btn:hover {
   background: #1f3a0f;
   transform: scale(1.1);
+}
+
+[data-theme="dark"] .add-area-btn:hover {
+  background: #45a049;
 }
 
 .modal-overlay {
@@ -49,6 +57,13 @@
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
+  transition: background-color 0.3s ease;
+}
+
+[data-theme="dark"] .modal-content {
+  background: #2d2d2d;
+  color: #e0e0e0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
 }
 
 @keyframes slideUp {
@@ -69,12 +84,22 @@
   margin-bottom: 25px;
   border-bottom: 2px solid #f0f0f0;
   padding-bottom: 15px;
+  transition: border-color 0.3s ease;
+}
+
+[data-theme="dark"] .modal-header {
+  border-bottom-color: #404040;
 }
 
 .modal-header h3 {
   margin: 0;
   color: #2d5016;
   font-size: 1.5em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .modal-header h3 {
+  color: #4caf50;
 }
 
 .modal-close {
@@ -101,6 +126,11 @@
   color: #333;
   font-weight: 600;
   font-size: 0.95em;
+  transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .form-group label {
+  color: #e0e0e0;
 }
 
 .form-group input,
@@ -113,6 +143,16 @@
   font-size: 1em;
   font-family: inherit;
   transition: all 0.3s ease;
+  background: white;
+  color: #333;
+}
+
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .form-group textarea {
+  background: #3a3a3a;
+  color: #e0e0e0;
+  border-color: #404040;
 }
 
 .form-group input:focus,
@@ -121,6 +161,13 @@
   outline: none;
   border-color: #2d5016;
   box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.1);
+}
+
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group select:focus,
+[data-theme="dark"] .form-group textarea:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 .error-message {
@@ -143,10 +190,20 @@
   background: #f0f0f0;
   color: #333;
   border: none;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .btn-cancel {
+  background: #3a3a3a;
+  color: #e0e0e0;
 }
 
 .btn-cancel:hover {
   background: #e0e0e0;
+}
+
+[data-theme="dark"] .btn-cancel:hover {
+  background: #454545;
 }
 
 .btn {
@@ -163,11 +220,21 @@
 .btn-primary {
   background: #2d5016;
   color: white;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .btn-primary {
+  background: #4caf50;
+  color: #1a1a1a;
 }
 
 .btn-primary:hover:not(:disabled) {
   background: #1f3a0f;
   transform: translateY(-2px);
+}
+
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  background: #45a049;
 }
 
 .btn:disabled {
