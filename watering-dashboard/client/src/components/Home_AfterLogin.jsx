@@ -16,7 +16,6 @@ export default function HomeAfterLogin({ user }) {
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
   const [showEditPlantModal, setShowEditPlantModal] = useState(false);
   const [editingPlant, setEditingPlant] = useState(null);
-  const [showDetailMap, setShowDetailMap] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mapCoordinates, setMapCoordinates] = useState(null);
 
@@ -51,7 +50,6 @@ export default function HomeAfterLogin({ user }) {
   const handleSelectArea = (area) => {
     setSelectedArea(area);
     loadPlants(area.id);
-    setShowDetailMap(true);
   };
 
   const handleNewArea = async () => {
@@ -88,7 +86,6 @@ export default function HomeAfterLogin({ user }) {
           if (selectedArea?.id === areaId) {
             setSelectedArea(null);
             setPlants([]);
-            setShowDetailMap(false);
           }
         }
       } catch (err) {
@@ -174,16 +171,6 @@ export default function HomeAfterLogin({ user }) {
                   </div>
                   <div className="area-actions">
                     <button
-                      className="btn-icon"
-                      title="Edit"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditArea(area);
-                      }}
-                    >
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button
                       className="btn-icon btn-danger"
                       title="Delete"
                       onClick={(e) => {
@@ -206,13 +193,6 @@ export default function HomeAfterLogin({ user }) {
               <div className="area-header">
                 <h2>{selectedArea.name}</h2>
                 <div className="area-header-actions">
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => setShowDetailMap(!showDetailMap)}
-                  >
-                    <i className="fas fa-map"></i>
-                    {showDetailMap ? "Hide Map" : "Show Map"}
-                  </button>
                   <AddPlantButton
                     areaId={selectedArea.id}
                     onPlantCreated={handleAddPlant}
@@ -223,16 +203,14 @@ export default function HomeAfterLogin({ user }) {
                 </div>
               </div>
 
-              {showDetailMap && (
-                <div className="map-container">
-                  <AreaDetailMap
-                    area={selectedArea}
-                    plants={plants}
-                    user={user}
-                    onMapClick={handleMapClick}
-                  />
-                </div>
-              )}
+              <div className="map-container">
+                <AreaDetailMap
+                  area={selectedArea}
+                  plants={plants}
+                  user={user}
+                  onMapClick={handleMapClick}
+                />
+              </div>
 
               <div className="plants-section">
                 <h3>🌱 Plants in this Area ({plants.length})</h3>

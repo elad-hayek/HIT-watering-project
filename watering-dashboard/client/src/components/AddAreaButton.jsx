@@ -14,12 +14,23 @@ export default function AddAreaButton({ onAreaCreated, user }) {
   const mapInstanceRef = useRef(null);
   const drawnItemsRef = useRef(null);
 
-  // Initialize map when modal opens
+  // Initialize map when modal opens or type changes
   useEffect(() => {
-    if (showModal && mapRef.current && !mapInitialized) {
+    if (showModal && mapRef.current) {
+      // If shape already drawn and type changes, clear the shape and reinit
+      if (drawnShape) {
+        setDrawnShape(null);
+      }
+      // Always reinitialize map when type changes
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        setMapInitialized(false);
+      }
+      // Reinitialize with new type
       initializeMap();
     }
-  }, [showModal, mapInitialized]);
+  }, [showModal, type]);
 
   const initializeMap = () => {
     try {
@@ -29,12 +40,26 @@ export default function AddAreaButton({ onAreaCreated, user }) {
         return;
       }
 
-      // Clear if map already exists
+      // Always clear existing map completely
       if (mapInstanceRef.current) {
+        // Remove all layers first
+        mapInstanceRef.current.eachLayer((layer) => {
+          mapInstanceRef.current.removeLayer(layer);
+        });
+        // Then remove the map
         mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
       }
 
-      const map = L.map(mapRef.current).setView([31.7683, 35.2137], 13);
+      // Clear the DOM container
+      if (mapRef.current) {
+        mapRef.current.innerHTML = "";
+      }
+
+      const map = L.map(mapRef.current, { maxBounds: null }).setView(
+        [31.7683, 35.2137],
+        13,
+      );
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap contributors",
         maxZoom: 19,
@@ -124,12 +149,15 @@ export default function AddAreaButton({ onAreaCreated, user }) {
     } catch (e) {
       console.error("Map initialization error:", e);
       setError("Could not initialize map: " + e.message);
+      mapInstanceRef.current = null;
     }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setMapInitialized(false);
+    setDrawnShape(null);
+    setError("");
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
@@ -250,7 +278,6 @@ export default function AddAreaButton({ onAreaCreated, user }) {
                     <select
                       value={type}
                       onChange={(e) => setType(e.target.value)}
-                      disabled={drawnShape !== null}
                     >
                       <option value="rectangle">Rectangle</option>
                       <option value="polygon">Polygon</option>

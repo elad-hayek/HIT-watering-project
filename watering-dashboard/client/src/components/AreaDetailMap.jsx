@@ -10,14 +10,25 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
   useEffect(() => {
     // Destroy existing map when area changes
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
+      try {
+        mapInstanceRef.current.eachLayer((layer) => {
+          mapInstanceRef.current.removeLayer(layer);
+        });
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        console.error("Error removing map:", e);
+      }
       mapInstanceRef.current = null;
-      mapRef.current.hasMap = false;
-      plantsMarkersRef.current = [];
-      clickMarkerRef.current = null;
     }
 
-    if (mapRef.current && !mapRef.current.hasMap) {
+    if (mapRef.current) {
+      mapRef.current.innerHTML = "";
+      mapRef.current.hasMap = false;
+    }
+    plantsMarkersRef.current = [];
+    clickMarkerRef.current = null;
+
+    if (mapRef.current) {
       // Initialize map
       const initMap = () => {
         try {
@@ -27,7 +38,16 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
             return;
           }
 
-          const map = L.map(mapRef.current).setView([31.7683, 35.2137], 13);
+          // Ensure map container is clean
+          if (!mapRef.current) {
+            console.error("Map container not found");
+            return;
+          }
+
+          const map = L.map(mapRef.current, { maxBounds: null }).setView(
+            [31.7683, 35.2137],
+            13,
+          );
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: "© OpenStreetMap contributors",
             maxZoom: 19,
