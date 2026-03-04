@@ -242,6 +242,13 @@
   color: #4caf50;
 }
 
+.area-header-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .map-container {
   height: 400px;
   border-bottom: 1px solid #e0e0e0;

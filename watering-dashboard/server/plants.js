@@ -3,6 +3,40 @@ const router = express.Router();
 const db = require("./Database");
 const { writeAudit } = require("./logs");
 
+// Helper functions for geometry
+function parseJSON(str) {
+  try {
+    return str ? JSON.parse(str) : null;
+  } catch {
+    return null;
+  }
+}
+
+function pointInRect([lat, lng], bounds) {
+  if (!Array.isArray(bounds) || bounds.length !== 2) return false;
+  const [south, west] = bounds[0];
+  const [north, east] = bounds[1];
+  const s = Math.min(south, north);
+  const n = Math.max(south, north);
+  const w = Math.min(west, east);
+  const e = Math.max(west, east);
+  return lat >= s && lat <= n && lng >= w && lng <= e;
+}
+
+function pointInPolygon([lat, lng], positions) {
+  if (!Array.isArray(positions) || positions.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = positions.length - 1; i < positions.length; j = i++) {
+    const [lat1, lng1] = positions[i];
+    const [lat2, lng2] = positions[j];
+    const intersect =
+      lat1 > lng !== lat2 > lng &&
+      lng < ((lng2 - lng1) * (lat - lat1)) / (lat2 - lat1 || 1e-12) + lng1;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 // GET /api/plants - Get all plants
 router.get("/", (req, res) => {
   const areaId = req.query.areaId;
@@ -68,49 +102,90 @@ router.post("/", (req, res) => {
       .json({ error: "Area ID, name, and coordinates are required" });
   }
 
-  const sql = `
+  // First, get the area to validate coordinates are within bounds
+  const areaSql = `SELECT type, bounds_json, positions FROM areas WHERE id = ? LIMIT 1`;
+  db.query(areaSql, [areaId], (err, areaResults) => {
+    if (err) {
+      console.error("❌ Error fetching area:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    if (!areaResults || areaResults.length === 0) {
+      return res.status(404).json({ error: "Area not found" });
+    }
+
+    const area = areaResults[0];
+    let isWithinBounds = true;
+
+    // Validate coordinates are within area bounds
+    if (area.bounds_json) {
+      try {
+        const bounds = parseJSON(area.bounds_json);
+        if (area.type === "rectangle") {
+          isWithinBounds = pointInRect([lat, lng], bounds);
+        } else if (area.type === "polygon") {
+          const positions = parseJSON(area.positions);
+          if (positions) {
+            isWithinBounds = pointInPolygon([lat, lng], positions);
+          }
+        }
+      } catch (e) {
+        console.log("Could not validate bounds:", e);
+      }
+    }
+
+    if (!isWithinBounds) {
+      return res.status(400).json({
+        error:
+          "Plant location must be within the area boundary. Please click on the map inside the area.",
+      });
+    }
+
+    // Insert plant if validation passed
+    const plantSql = `
         INSERT INTO plants (area_id, name, type, lat, lng, watering_frequency_days, status, soil_moisture, notes, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-  db.query(
-    sql,
-    [
-      areaId,
-      name,
-      type || null,
-      lat,
-      lng,
-      wateringFrequencyDays || 1,
-      status || "healthy",
-      soilMoisture || null,
-      notes || null,
-      userId,
-    ],
-    async (err, result) => {
-      if (err) {
-        console.error("❌ Create plant error:", err);
-        return res.status(500).json({ error: "Database error" });
-      }
+    db.query(
+      plantSql,
+      [
+        areaId,
+        name,
+        type || null,
+        lat,
+        lng,
+        wateringFrequencyDays || 1,
+        status || "healthy",
+        soilMoisture || null,
+        notes || null,
+        userId,
+      ],
+      async (err, result) => {
+        if (err) {
+          console.error("❌ Create plant error:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
 
-      try {
-        await writeAudit({
-          action: "plant_create",
-          entity_type: "plant",
-          entity_id: result.insertId,
-          actor,
-          ip,
-          details: { name, areaId },
+        try {
+          await writeAudit({
+            action: "plant_create",
+            entity_type: "plant",
+            entity_id: result.insertId,
+            actor,
+            ip,
+            details: { name, areaId },
+          });
+        } catch (_) {}
+
+        res.status(201).json({
+          message: "Plant created",
+          plantId: result.insertId,
+          plant: { id: result.insertId, areaId, name, type, lat, lng, status },
         });
-      } catch (_) {}
-
-      res.status(201).json({
-        message: "Plant created",
-        plantId: result.insertId,
-        plant: { id: result.insertId, areaId, name, type, lat, lng, status },
-      });
-    },
-  );
+      },
+    );
+  });
 });
 
 // PUT /api/plants/:id - Update plant

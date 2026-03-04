@@ -5,8 +5,18 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const clickMarkerRef = useRef(null);
+  const plantsMarkersRef = useRef([]);
 
   useEffect(() => {
+    // Destroy existing map when area changes
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+      mapRef.current.hasMap = false;
+      plantsMarkersRef.current = [];
+      clickMarkerRef.current = null;
+    }
+
     if (mapRef.current && !mapRef.current.hasMap) {
       // Initialize map
       const initMap = () => {
@@ -17,30 +27,34 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
             return;
           }
 
-          // Clear any existing map instance
-          if (mapRef.current._leaflet_id) {
-            return;
-          }
-
           const map = L.map(mapRef.current).setView([31.7683, 35.2137], 13);
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: "© OpenStreetMap contributors",
             maxZoom: 19,
           }).addTo(map);
 
-          // Parse area bounds if available
+          // Parse area bounds if available and draw boundary
           if (area && area.bounds_json) {
             try {
               const bounds = JSON.parse(area.bounds_json);
               if (bounds && bounds.length === 2) {
                 map.fitBounds(bounds);
-                // Draw rectangle if rectangle type
+                // Draw rectangle boundary
                 if (area.type === "rectangle") {
-                  const rect = L.rectangle(bounds, {
+                  L.rectangle(bounds, {
                     color: "#2d5016",
-                    weight: 2,
-                    opacity: 0.6,
-                    fillOpacity: 0.1,
+                    weight: 3,
+                    opacity: 0.8,
+                    fillOpacity: 0.15,
+                  }).addTo(map);
+                }
+                // Draw polygon boundary
+                else if (area.type === "polygon") {
+                  L.polygon(bounds, {
+                    color: "#2d5016",
+                    weight: 3,
+                    opacity: 0.8,
+                    fillOpacity: 0.15,
                   }).addTo(map);
                 }
               }
@@ -50,6 +64,7 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
           }
 
           // Add plant markers
+          plantsMarkersRef.current = [];
           if (plants && plants.length > 0) {
             plants.forEach((plant) => {
               if (plant.lat != null && plant.lng != null) {
@@ -62,7 +77,7 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
                         ? "#f44336"
                         : "#9e9e9e";
 
-                L.circleMarker([plant.lat, plant.lng], {
+                const marker = L.circleMarker([plant.lat, plant.lng], {
                   radius: 8,
                   fillColor: color,
                   color: "#fff",
@@ -74,6 +89,7 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
                     `<strong>${plant.name}</strong><br/>${plant.type || ""}<br/>Status: ${plant.status}`,
                   )
                   .addTo(map);
+                plantsMarkersRef.current.push(marker);
               }
             });
           }
@@ -83,22 +99,23 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
 
-            // Remove previous click marker
+            // Remove previous click marker only
             if (clickMarkerRef.current) {
               map.removeLayer(clickMarkerRef.current);
             }
 
-            // Add new marker at click location
+            // Add new marker at click location (stays on top)
             clickMarkerRef.current = L.circleMarker([lat, lng], {
               radius: 10,
               fillColor: "#2d5016",
-              color: "#fff",
+              color: "#ffeb3b",
               weight: 3,
               opacity: 1,
               fillOpacity: 0.9,
+              dashArray: "5, 5",
             })
               .bindPopup(
-                `Click placement: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+                `<strong>New Plant Location</strong><br/>Lat: ${lat.toFixed(4)}<br/>Lng: ${lng.toFixed(4)}`,
               )
               .openPopup()
               .addTo(map);
@@ -111,17 +128,16 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
 
           mapRef.current.hasMap = true;
           mapInstanceRef.current = map;
-          console.log("✓ Map initialized successfully");
+          console.log("✓ Map initialized for area:", area?.name);
         } catch (e) {
           console.error("Map initialization error:", e);
         }
       };
 
-      // Check if Leaflet is loaded, if not wait a bit
+      // Check if Leaflet is loaded
       if (window.L) {
         initMap();
       } else {
-        // Give Leaflet scripts time to load
         const timer = setTimeout(initMap, 500);
         return () => clearTimeout(timer);
       }
@@ -133,13 +149,13 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
       <div ref={mapRef} className="leaflet-map"></div>
       <div className="map-info">
         <p>
-          <strong>Area Type:</strong> {area.type}
+          <strong>Area Type:</strong> {area?.type}
         </p>
         <p>
-          <strong>Plants:</strong> {plants.length} plants in this area
+          <strong>Plants:</strong> {plants?.length || 0} plants in this area
         </p>
         <p style={{ fontSize: "0.85em", marginTop: "10px", color: "#999" }}>
-          💡 Click on the map to place a new plant
+          💡 Click on the map to place a new plant inside this area
         </p>
       </div>
     </div>

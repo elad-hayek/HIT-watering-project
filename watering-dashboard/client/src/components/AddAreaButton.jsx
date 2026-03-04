@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./AddAreaButton.css";
 
 export default function AddAreaButton({ onAreaCreated, user }) {
@@ -8,6 +8,133 @@ export default function AddAreaButton({ onAreaCreated, user }) {
   const [type, setType] = useState("rectangle");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [drawnShape, setDrawnShape] = useState(null);
+  const [mapInitialized, setMapInitialized] = useState(false);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const drawnItemsRef = useRef(null);
+
+  // Initialize map when modal opens
+  useEffect(() => {
+    if (showModal && mapRef.current && !mapInitialized) {
+      initializeMap();
+    }
+  }, [showModal, mapInitialized]);
+
+  const initializeMap = () => {
+    try {
+      const L = window.L;
+      if (!L) {
+        setError("Leaflet library not loaded");
+        return;
+      }
+
+      // Clear if map already exists
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+      }
+
+      const map = L.map(mapRef.current).setView([31.7683, 35.2137], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
+        maxZoom: 19,
+      }).addTo(map);
+
+      // Create feature group for drawn items
+      const drawnItems = new L.FeatureGroup();
+      map.addLayer(drawnItems);
+      drawnItemsRef.current = drawnItems;
+
+      // Initialize Leaflet Draw
+      const drawControl = new L.Control.Draw({
+        position: "topright",
+        draw: {
+          polygon: type === "polygon",
+          polyline: false,
+          rectangle: type === "rectangle",
+          circle: false,
+          marker: false,
+        },
+        edit: {
+          featureGroup: drawnItems,
+          remove: true,
+        },
+      });
+      map.addControl(drawControl);
+
+      // Handle drawing events
+      map.on("draw:created", (e) => {
+        const layer = e.layer;
+        drawnItems.clearLayers();
+        drawnItems.addLayer(layer);
+
+        // Extract coordinates
+        if (layer instanceof L.Rectangle) {
+          const bounds = layer.getBounds();
+          const swCorner = bounds.getSouthWest();
+          const neCorner = bounds.getNorthEast();
+          setDrawnShape({
+            type: "rectangle",
+            bounds: [
+              [swCorner.lat, swCorner.lng],
+              [neCorner.lat, neCorner.lng],
+            ],
+          });
+        } else if (layer instanceof L.Polygon) {
+          const coords = layer.getLatLngs()[0];
+          const positions = coords.map((latlng) => [latlng.lat, latlng.lng]);
+          setDrawnShape({
+            type: "polygon",
+            positions: positions,
+          });
+        }
+      });
+
+      map.on("draw:edited", (e) => {
+        const layers = e.layers;
+        layers.eachLayer((layer) => {
+          if (layer instanceof L.Rectangle) {
+            const bounds = layer.getBounds();
+            const swCorner = bounds.getSouthWest();
+            const neCorner = bounds.getNorthEast();
+            setDrawnShape({
+              type: "rectangle",
+              bounds: [
+                [swCorner.lat, swCorner.lng],
+                [neCorner.lat, neCorner.lng],
+              ],
+            });
+          } else if (layer instanceof L.Polygon) {
+            const coords = layer.getLatLngs()[0];
+            const positions = coords.map((latlng) => [latlng.lat, latlng.lng]);
+            setDrawnShape({
+              type: "polygon",
+              positions: positions,
+            });
+          }
+        });
+      });
+
+      map.on("draw:deleted", () => {
+        setDrawnShape(null);
+      });
+
+      mapInstanceRef.current = map;
+      setMapInitialized(true);
+    } catch (e) {
+      console.error("Map initialization error:", e);
+      setError("Could not initialize map: " + e.message);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setMapInitialized(false);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,9 +145,21 @@ export default function AddAreaButton({ onAreaCreated, user }) {
       return;
     }
 
+    if (!drawnShape) {
+      setError(
+        `Please draw a ${type === "rectangle" ? "rectangle" : "polygon"} on the map`,
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const boundsJson =
+        type === "rectangle"
+          ? JSON.stringify(drawnShape.bounds)
+          : JSON.stringify(drawnShape.positions);
+
       const response = await fetch("http://localhost:3000/api/areas", {
         method: "POST",
         headers: {
@@ -32,8 +171,9 @@ export default function AddAreaButton({ onAreaCreated, user }) {
           name,
           description,
           type,
-          bounds_json: null,
-          positions: null,
+          bounds_json: boundsJson,
+          positions:
+            type === "polygon" ? JSON.stringify(drawnShape.positions) : null,
         }),
       });
 
@@ -47,7 +187,8 @@ export default function AddAreaButton({ onAreaCreated, user }) {
       setName("");
       setDescription("");
       setType("rectangle");
-      setShowModal(false);
+      setDrawnShape(null);
+      handleCloseModal();
       setLoading(false);
       onAreaCreated();
     } catch (err) {
@@ -63,67 +204,94 @@ export default function AddAreaButton({ onAreaCreated, user }) {
       </button>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="add-area-modal-overlay" onClick={handleCloseModal}>
+          <div
+            className="add-area-modal-wrapper"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="add-area-modal-header">
               <h3>Create New Area</h3>
               <button
-                className="modal-close"
-                onClick={() => setShowModal(false)}
+                className="add-area-modal-close"
+                onClick={handleCloseModal}
               >
                 <i className="fas fa-times"></i>
               </button>
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            {error && <div className="add-area-error-message">{error}</div>}
 
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Area Name *</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., South Garden"
-                  required
-                />
+            <div className="add-area-form-container">
+              <div className="add-area-form-left">
+                <form onSubmit={handleSubmit}>
+                  <div className="add-area-form-group">
+                    <label>Area Name *</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g., South Garden"
+                      required
+                    />
+                  </div>
+
+                  <div className="add-area-form-group">
+                    <label>Description</label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Optional description"
+                      rows="3"
+                    />
+                  </div>
+
+                  <div className="add-area-form-group">
+                    <label>Area Type *</label>
+                    <select
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      disabled={drawnShape !== null}
+                    >
+                      <option value="rectangle">Rectangle</option>
+                      <option value="polygon">Polygon</option>
+                    </select>
+                    <small style={{ display: "block", marginTop: "5px" }}>
+                      {drawnShape
+                        ? "✓ Shape drawn on map"
+                        : "⚠ Draw a shape on the map →"}
+                    </small>
+                  </div>
+
+                  <div className="add-area-modal-actions">
+                    <button
+                      type="button"
+                      className="add-area-modal-btn add-area-modal-btn-cancel"
+                      onClick={handleCloseModal}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="add-area-modal-btn add-area-modal-btn-primary"
+                      disabled={loading || !drawnShape}
+                    >
+                      {loading ? "Creating..." : "Create Area"}
+                    </button>
+                  </div>
+                </form>
               </div>
 
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Optional description"
-                  rows="3"
-                />
+              <div className="add-area-form-right">
+                <div className="add-area-map-instructions">
+                  <h4>🗺️ Draw Area Boundary</h4>
+                  <p>
+                    Use the drawing tools to create a {type} on the map. This
+                    defines where plants can be placed.
+                  </p>
+                </div>
+                <div ref={mapRef} className="add-area-map"></div>
               </div>
-
-              <div className="form-group">
-                <label>Area Type *</label>
-                <select value={type} onChange={(e) => setType(e.target.value)}>
-                  <option value="rectangle">Rectangle</option>
-                  <option value="polygon">Polygon</option>
-                </select>
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn btn-cancel"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? "Creating..." : "Create Area"}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
