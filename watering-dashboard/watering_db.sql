@@ -1,0 +1,84 @@
+-- Create watering_db Database and Tables
+
+-- Create Database
+CREATE DATABASE IF NOT EXISTS watering_db CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE watering_db;
+
+-- Users Table
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` char(9) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `lastname` varchar(100) DEFAULT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `title` varchar(100) DEFAULT NULL,
+  `city` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  CONSTRAINT `chk_username_9digits` CHECK (regexp_like(`username`,_utf8mb4'^[0-9]{9}$'))
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Areas Table
+DROP TABLE IF EXISTS areas;
+CREATE TABLE areas (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL,
+  `description` text,
+  `type` enum('rectangle','polygon') NOT NULL,
+  `bounds_json` json DEFAULT NULL,
+  `positions` json DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `photo_url` varchar(255) DEFAULT NULL,
+  `created_by` int,
+  PRIMARY KEY (`id`),
+  KEY `idx_type` (`type`),
+  FOREIGN KEY (`created_by`) REFERENCES users(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Plants/Watering Stations Table
+DROP TABLE IF EXISTS plants;
+CREATE TABLE plants (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `area_id` int NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `type` varchar(100) DEFAULT NULL,
+  `lat` decimal(10,7) NOT NULL,
+  `lng` decimal(10,7) NOT NULL,
+  `watering_frequency_days` int DEFAULT 1,
+  `last_watered` datetime DEFAULT NULL,
+  `status` enum('healthy','needs_water','diseased','dormant') DEFAULT 'healthy',
+  `soil_moisture` int DEFAULT NULL,
+  `notes` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_by` int,
+  PRIMARY KEY (`id`),
+  KEY `idx_area` (`area_id`),
+  KEY `idx_status` (`status`),
+  CONSTRAINT `fk_plants_area` FOREIGN KEY (`area_id`) REFERENCES `areas` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_plants_user` FOREIGN KEY (`created_by`) REFERENCES users(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Audit Log Table
+DROP TABLE IF EXISTS audit_log;
+CREATE TABLE audit_log (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `action` varchar(255) NOT NULL,
+  `entity_type` varchar(100),
+  `entity_id` int,
+  `actor` varchar(255),
+  `ip_address` varchar(45),
+  `details` json,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_action` (`action`),
+  KEY `idx_entity` (`entity_type`, `entity_id`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Sample Data
+INSERT INTO users (username, password, lastname, name, title, city) VALUES
+  ('340969674', '123456', 'Demo', 'Admin', 'Administrator', 'Tel Aviv'),
+  ('111111111', 'password123', 'User', 'Test', 'Manager', 'Jerusalem'),
+  ('222222222', 'password456', 'Smith', 'John', 'Operator', 'Haifa');

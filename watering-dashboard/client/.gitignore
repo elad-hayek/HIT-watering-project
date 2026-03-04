@@ -1,0 +1,1 @@
+npm_config_node_gyp=npm list node-gyp 2>/dev/null | head -1 | awk '{print $NF}'

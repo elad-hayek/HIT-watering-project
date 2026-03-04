@@ -1,0 +1,325 @@
+import React, { useState, useEffect } from "react";
+import "./Home_AfterLogin.css";
+import AddAreaButton from "./AddAreaButton";
+import EditAreaModal from "./EditAreaModal";
+import AddPlantButton from "./AddPlantButton";
+import EditPlantModal from "./EditPlantModal";
+import AreaDetailMap from "./AreaDetailMap";
+
+export default function HomeAfterLogin({ user }) {
+  const [areas, setAreas] = useState([]);
+  const [plants, setPlants] = useState([]);
+  const [selectedArea, setSelectedArea] = useState(null);
+  const [showNewAreaModal, setShowNewAreaModal] = useState(false);
+  const [showEditAreaModal, setShowEditAreaModal] = useState(false);
+  const [editingArea, setEditingArea] = useState(null);
+  const [showAddPlantModal, setShowAddPlantModal] = useState(false);
+  const [showEditPlantModal, setShowEditPlantModal] = useState(false);
+  const [editingPlant, setEditingPlant] = useState(null);
+  const [showDetailMap, setShowDetailMap] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadAreas();
+  }, []);
+
+  const loadAreas = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/api/areas");
+      const data = await res.json();
+      setAreas(data.areas || []);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error loading areas:", err);
+      setLoading(false);
+    }
+  };
+
+  const loadPlants = async (areaId) => {
+    try {
+      const res = await fetch(
+        `http://localhost:3000/api/plants?areaId=${areaId}`,
+      );
+      const data = await res.json();
+      setPlants(data.plants || []);
+    } catch (err) {
+      console.error("Error loading plants:", err);
+    }
+  };
+
+  const handleSelectArea = (area) => {
+    setSelectedArea(area);
+    loadPlants(area.id);
+    setShowDetailMap(false);
+  };
+
+  const handleNewArea = async () => {
+    await loadAreas();
+    setShowNewAreaModal(false);
+  };
+
+  const handleEditArea = (area) => {
+    setEditingArea(area);
+    setShowEditAreaModal(true);
+  };
+
+  const handleUpdateArea = async () => {
+    await loadAreas();
+    setShowEditAreaModal(false);
+    if (selectedArea) {
+      handleSelectArea(selectedArea);
+    }
+  };
+
+  const handleDeleteArea = async (areaId) => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this area and all its plants?",
+      )
+    ) {
+      try {
+        const res = await fetch(`http://localhost:3000/api/areas/${areaId}`, {
+          method: "DELETE",
+          headers: { "x-user": user.username },
+        });
+        if (res.ok) {
+          await loadAreas();
+          if (selectedArea?.id === areaId) {
+            setSelectedArea(null);
+            setPlants([]);
+            setShowDetailMap(false);
+          }
+        }
+      } catch (err) {
+        console.error("Error deleting area:", err);
+      }
+    }
+  };
+
+  const handleAddPlant = async () => {
+    loadPlants(selectedArea.id);
+    setShowAddPlantModal(false);
+  };
+
+  const handleEditPlant = (plant) => {
+    setEditingPlant(plant);
+    setShowEditPlantModal(true);
+  };
+
+  const handleUpdatePlant = async () => {
+    if (selectedArea) {
+      loadPlants(selectedArea.id);
+    }
+    setShowEditPlantModal(false);
+  };
+
+  const handleDeletePlant = async (plantId) => {
+    if (window.confirm("Are you sure you want to delete this plant?")) {
+      try {
+        const res = await fetch(`http://localhost:3000/api/plants/${plantId}`, {
+          method: "DELETE",
+          headers: { "x-user": user.username },
+        });
+        if (res.ok && selectedArea) {
+          loadPlants(selectedArea.id);
+        }
+      } catch (err) {
+        console.error("Error deleting plant:", err);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-loading">
+        <div className="loader"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="home-after-login">
+      <div className="dashboard-container">
+        <div className="sidebar">
+          <div className="sidebar-header">
+            <h2>🌍 Areas</h2>
+            <AddAreaButton onAreaCreated={handleNewArea} user={user} />
+          </div>
+
+          <div className="areas-list">
+            {areas.length === 0 ? (
+              <div className="no-areas">
+                <i className="fas fa-inbox"></i>
+                <p>No areas yet</p>
+              </div>
+            ) : (
+              areas.map((area) => (
+                <div
+                  key={area.id}
+                  className={`area-item ${selectedArea?.id === area.id ? "active" : ""}`}
+                  onClick={() => handleSelectArea(area)}
+                >
+                  <div className="area-info">
+                    <h4>{area.name}</h4>
+                    <p className="area-desc">
+                      {area.description || "No description"}
+                    </p>
+                    <span className="area-meta">{area.type}</span>
+                  </div>
+                  <div className="area-actions">
+                    <button
+                      className="btn-icon"
+                      title="Edit"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditArea(area);
+                      }}
+                    >
+                      <i className="fas fa-edit"></i>
+                    </button>
+                    <button
+                      className="btn-icon btn-danger"
+                      title="Delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteArea(area.id);
+                      }}
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="main-content">
+          {selectedArea ? (
+            <>
+              <div className="area-header">
+                <h2>{selectedArea.name}</h2>
+                <div className="area-header-actions">
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setShowDetailMap(!showDetailMap)}
+                  >
+                    <i className="fas fa-map"></i>
+                    {showDetailMap ? "Hide Map" : "Show Map"}
+                  </button>
+                  <AddPlantButton
+                    areaId={selectedArea.id}
+                    onPlantCreated={handleAddPlant}
+                    user={user}
+                  />
+                </div>
+              </div>
+
+              {showDetailMap && (
+                <div className="map-container">
+                  <AreaDetailMap
+                    area={selectedArea}
+                    plants={plants}
+                    user={user}
+                  />
+                </div>
+              )}
+
+              <div className="plants-section">
+                <h3>🌱 Plants in this Area ({plants.length})</h3>
+                {plants.length === 0 ? (
+                  <div className="no-plants">
+                    <i className="fas fa-spa"></i>
+                    <p>No plants in this area</p>
+                  </div>
+                ) : (
+                  <div className="plants-grid">
+                    {plants.map((plant) => (
+                      <div
+                        key={plant.id}
+                        className={`plant-card status-${plant.status}`}
+                      >
+                        <div className="plant-header">
+                          <h4>{plant.name}</h4>
+                          <span className={`status-badge ${plant.status}`}>
+                            {plant.status}
+                          </span>
+                        </div>
+                        <div className="plant-info">
+                          <p>
+                            <strong>Type:</strong> {plant.type || "Unknown"}
+                          </p>
+                          <p>
+                            <strong>Watering:</strong> Every{" "}
+                            {plant.watering_frequency_days} days
+                          </p>
+                          {plant.last_watered && (
+                            <p>
+                              <strong>Last Watered:</strong>{" "}
+                              {new Date(
+                                plant.last_watered,
+                              ).toLocaleDateString()}
+                            </p>
+                          )}
+                          {plant.soil_moisture !== null && (
+                            <p>
+                              <strong>Soil Moisture:</strong>{" "}
+                              {plant.soil_moisture}%
+                            </p>
+                          )}
+                          {plant.notes && (
+                            <p>
+                              <strong>Notes:</strong> {plant.notes}
+                            </p>
+                          )}
+                        </div>
+                        <div className="plant-actions">
+                          <button
+                            className="btn btn-sm btn-info"
+                            onClick={() => handleEditPlant(plant)}
+                          >
+                            <i className="fas fa-edit"></i> Edit
+                          </button>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleDeletePlant(plant.id)}
+                          >
+                            <i className="fas fa-trash"></i> Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="empty-state">
+              <i className="fas fa-map-location-dot"></i>
+              <h2>Select an Area</h2>
+              <p>Choose an area from the left to view and manage its plants</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showEditAreaModal && (
+        <EditAreaModal
+          area={editingArea}
+          onClose={() => setShowEditAreaModal(false)}
+          onUpdate={handleUpdateArea}
+          user={user}
+        />
+      )}
+
+      {showEditPlantModal && (
+        <EditPlantModal
+          plant={editingPlant}
+          onClose={() => setShowEditPlantModal(false)}
+          onUpdate={handleUpdatePlant}
+          user={user}
+        />
+      )}
+    </div>
+  );
+}
