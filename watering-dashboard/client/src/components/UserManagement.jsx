@@ -32,7 +32,7 @@ export default function UserManagement({ user }) {
 
     try {
       const response = await fetch(
-        `/api/users/search/${encodeURIComponent(searchQuery)}`,
+        `http://localhost:3000/api/users/search/${encodeURIComponent(searchQuery)}`,
         {
           headers: {
             "x-user-id": user.id,
@@ -84,16 +84,19 @@ export default function UserManagement({ user }) {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/users/${userId}/role`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user.id,
-          "x-user-role": user.role,
-          "x-user": user.username,
+      const response = await fetch(
+        `http://localhost:3000/api/users/${userId}/role`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": user.id,
+            "x-user-role": user.role,
+            "x-user": user.username,
+          },
+          body: JSON.stringify({ newRole }),
         },
-        body: JSON.stringify({ newRole }),
-      });
+      );
 
       if (!response.ok) {
         const error = await response.json();
