@@ -64,7 +64,14 @@ export default function AddPlantButton({
     }
   };
 
-  // Validate coordinates when they change
+  // Clear error when modal opens for a fresh state
+  useEffect(() => {
+    if (showModal && !mapCoordinates) {
+      setError(""); // Clear error when opening modal without a location
+    }
+  }, [showModal]);
+
+  // Validate coordinates only after they've been set (user clicked map)
   useEffect(() => {
     if (mapCoordinates) {
       if (!isWithinArea(mapCoordinates.lat, mapCoordinates.lng)) {
@@ -168,20 +175,17 @@ export default function AddPlantButton({
 
             {error && <div className="error-message">{error}</div>}
 
-            {!error?.includes("OUTSIDE") && (
+            {!mapCoordinates ? (
+              <div className="info-message">
+                ℹ️ Please close this form, click on the map to mark the plant
+                location, then click "Add Plant" again to fill in the details
+              </div>
+            ) : !error?.includes("OUTSIDE") ? (
               <>
-                {mapCoordinates ? (
-                  <div className="success-message">
-                    ✓ Location selected on map: ({mapCoordinates.lat.toFixed(4)}
-                    , {mapCoordinates.lng.toFixed(4)})
-                  </div>
-                ) : (
-                  <div className="info-message">
-                    ℹ️ Please close this form, click on the map to mark the
-                    plant location, then click "Add Plant" again to fill in the
-                    details
-                  </div>
-                )}
+                <div className="success-message">
+                  ✓ Location selected on map: ({mapCoordinates.lat.toFixed(4)},
+                  {mapCoordinates.lng.toFixed(4)})
+                </div>
 
                 <form onSubmit={handleSubmit}>
                   <div className="form-group">
@@ -268,7 +272,7 @@ export default function AddPlantButton({
                   </div>
                 </form>
               </>
-            )}
+            ) : null}
           </div>
         </div>
       )}
