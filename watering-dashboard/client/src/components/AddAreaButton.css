@@ -107,7 +107,7 @@
 }
 
 [data-theme="dark"] .add-area-modal-header h3 {
-  color: #4caf50;
+  color: #e0e0e0;
 }
 
 .add-area-modal-close {
@@ -320,7 +320,7 @@
 }
 
 [data-theme="dark"] .add-area-map-instructions h4 {
-  color: #4caf50;
+  color: #e0e0e0;
 }
 
 .add-area-map-instructions p {
@@ -376,4 +376,48 @@
 
 .leaflet-draw-toolbar-bottom a {
   display: none !important;
+}
+
+/* Style Leaflet Draw buttons for better visibility */
+.leaflet-draw-toolbar a {
+  background-color: white !important;
+  color: #000 !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  stroke: #000 !important;
+  fill: #000 !important;
+}
+
+.leaflet-draw-toolbar a:hover {
+  background-color: #f0f0f0 !important;
+}
+
+.leaflet-draw-toolbar a.active {
+  background-color: #2d5016 !important;
+  color: white !important;
+  fill: white !important;
+  stroke: white !important;
+}
+
+.leaflet-draw-toolbar a:before {
+  color: #000 !important;
+  stroke: #000 !important;
+  fill: #000 !important;
+}
+
+.leaflet-draw-toolbar a.active:before {
+  color: white !important;
+  stroke: white !important;
+  fill: white !important;
+}
+
+/* Override leaflet-draw SVG icons */
+.leaflet-draw-toolbar svg {
+  stroke: #000 !important;
+  fill: #000 !important;
+}
+
+.leaflet-draw-toolbar a.active svg {
+  stroke: white !important;
+  fill: white !important;
 }

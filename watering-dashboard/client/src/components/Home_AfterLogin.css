@@ -452,12 +452,12 @@
 }
 
 .btn-danger {
-  background: #f44336;
+  background: #666666;
   color: white;
 }
 
 .btn-danger:hover {
-  background: #d32f2f;
+  background: #555555;
 }
 
 .empty-state {
