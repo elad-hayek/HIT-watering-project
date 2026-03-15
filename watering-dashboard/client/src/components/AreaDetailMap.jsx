@@ -116,11 +116,13 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
 
           // Add click handler to place plants
           map.on("click", (e) => {
+            console.log("✓ Map clicked at:", e.latlng.lat, e.latlng.lng);
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
 
             // Remove previous click marker only
             if (clickMarkerRef.current) {
+              console.log("Removing previous marker");
               map.removeLayer(clickMarkerRef.current);
             }
 
@@ -132,7 +134,6 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
               weight: 3,
               opacity: 1,
               fillOpacity: 0.9,
-              dashArray: "5, 5",
             })
               .bindPopup(
                 `<strong>New Plant Location</strong><br/>Lat: ${lat.toFixed(4)}<br/>Lng: ${lng.toFixed(4)}`,
@@ -140,8 +141,11 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
               .openPopup()
               .addTo(map);
 
+            console.log("✓ Marker added at:", lat, lng);
+
             // Call parent callback with coordinates
             if (onMapClick) {
+              console.log("Calling onMapClick with coordinates");
               onMapClick({ lat, lng });
             }
           });
@@ -162,7 +166,7 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
         return () => clearTimeout(timer);
       }
     }
-  }, [area, plants, onMapClick]);
+  }, [area, plants]);
 
   return (
     <div className="area-detail-map">

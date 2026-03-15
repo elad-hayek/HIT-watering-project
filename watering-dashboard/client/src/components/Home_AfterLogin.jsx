@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./Home_AfterLogin.css";
 import AddAreaButton from "./AddAreaButton";
 import EditAreaModal from "./EditAreaModal";
@@ -127,10 +127,9 @@ export default function HomeAfterLogin({ user }) {
     }
   };
 
-  const handleMapClick = ({ lat, lng }) => {
+  const handleMapClick = useCallback(({ lat, lng }) => {
     setMapCoordinates({ lat, lng });
-    setShowAddPlantModal(true);
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -195,6 +194,7 @@ export default function HomeAfterLogin({ user }) {
                 <div className="area-header-actions">
                   <AddPlantButton
                     areaId={selectedArea.id}
+                    area={selectedArea}
                     onPlantCreated={handleAddPlant}
                     user={user}
                     mapCoordinates={mapCoordinates}
@@ -203,81 +203,83 @@ export default function HomeAfterLogin({ user }) {
                 </div>
               </div>
 
-              <div className="map-container">
-                <AreaDetailMap
-                  area={selectedArea}
-                  plants={plants}
-                  user={user}
-                  onMapClick={handleMapClick}
-                />
-              </div>
+              <div className="area-content-wrapper">
+                <div className="plants-section">
+                  <h3>🌱 Plants in this Area ({plants.length})</h3>
+                  {plants.length === 0 ? (
+                    <div className="no-plants">
+                      <i className="fas fa-spa"></i>
+                      <p>No plants in this area</p>
+                    </div>
+                  ) : (
+                    <div className="plants-grid">
+                      {plants.map((plant) => (
+                        <div
+                          key={plant.id}
+                          className={`plant-card status-${plant.status}`}
+                        >
+                          <div className="plant-header">
+                            <h4>{plant.name}</h4>
+                            <span className={`status-badge ${plant.status}`}>
+                              {plant.status}
+                            </span>
+                          </div>
+                          <div className="plant-info">
+                            <p>
+                              <strong>Type:</strong> {plant.type || "Unknown"}
+                            </p>
+                            <p>
+                              <strong>Watering:</strong> Every{" "}
+                              {plant.watering_frequency_days} days
+                            </p>
+                            {plant.last_watered && (
+                              <p>
+                                <strong>Last Watered:</strong>{" "}
+                                {new Date(
+                                  plant.last_watered,
+                                ).toLocaleDateString()}
+                              </p>
+                            )}
+                            {plant.soil_moisture !== null && (
+                              <p>
+                                <strong>Soil Moisture:</strong>{" "}
+                                {plant.soil_moisture}%
+                              </p>
+                            )}
+                            {plant.notes && (
+                              <p>
+                                <strong>Notes:</strong> {plant.notes}
+                              </p>
+                            )}
+                          </div>
+                          <div className="plant-actions">
+                            <button
+                              className="btn btn-sm btn-info"
+                              onClick={() => handleEditPlant(plant)}
+                            >
+                              <i className="fas fa-edit"></i> Edit
+                            </button>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleDeletePlant(plant.id)}
+                            >
+                              <i className="fas fa-trash"></i> Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              <div className="plants-section">
-                <h3>🌱 Plants in this Area ({plants.length})</h3>
-                {plants.length === 0 ? (
-                  <div className="no-plants">
-                    <i className="fas fa-spa"></i>
-                    <p>No plants in this area</p>
-                  </div>
-                ) : (
-                  <div className="plants-grid">
-                    {plants.map((plant) => (
-                      <div
-                        key={plant.id}
-                        className={`plant-card status-${plant.status}`}
-                      >
-                        <div className="plant-header">
-                          <h4>{plant.name}</h4>
-                          <span className={`status-badge ${plant.status}`}>
-                            {plant.status}
-                          </span>
-                        </div>
-                        <div className="plant-info">
-                          <p>
-                            <strong>Type:</strong> {plant.type || "Unknown"}
-                          </p>
-                          <p>
-                            <strong>Watering:</strong> Every{" "}
-                            {plant.watering_frequency_days} days
-                          </p>
-                          {plant.last_watered && (
-                            <p>
-                              <strong>Last Watered:</strong>{" "}
-                              {new Date(
-                                plant.last_watered,
-                              ).toLocaleDateString()}
-                            </p>
-                          )}
-                          {plant.soil_moisture !== null && (
-                            <p>
-                              <strong>Soil Moisture:</strong>{" "}
-                              {plant.soil_moisture}%
-                            </p>
-                          )}
-                          {plant.notes && (
-                            <p>
-                              <strong>Notes:</strong> {plant.notes}
-                            </p>
-                          )}
-                        </div>
-                        <div className="plant-actions">
-                          <button
-                            className="btn btn-sm btn-info"
-                            onClick={() => handleEditPlant(plant)}
-                          >
-                            <i className="fas fa-edit"></i> Edit
-                          </button>
-                          <button
-                            className="btn btn-sm btn-danger"
-                            onClick={() => handleDeletePlant(plant.id)}
-                          >
-                            <i className="fas fa-trash"></i> Delete
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="map-container">
+                  <AreaDetailMap
+                    area={selectedArea}
+                    plants={plants}
+                    user={user}
+                    onMapClick={handleMapClick}
+                  />
+                </div>
               </div>
             </>
           ) : (

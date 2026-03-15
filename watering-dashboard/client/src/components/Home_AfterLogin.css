@@ -249,10 +249,19 @@
   flex-wrap: wrap;
 }
 
+.area-content-wrapper {
+  flex: 1;
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+}
+
 .map-container {
-  height: 400px;
-  border-bottom: 1px solid #e0e0e0;
+  flex: 0 0 auto;
+  width: min(600px, 40vw);
+  height: 600px;
   background: white;
+  border-left: 1px solid #e0e0e0;
   transition:
     background-color 0.3s ease,
     border-color 0.3s ease;
@@ -260,7 +269,7 @@
 
 [data-theme="dark"] .map-container {
   background: #2d2d2d;
-  border-bottom-color: #404040;
+  border-left-color: #404040;
 }
 
 .plants-section {
@@ -268,6 +277,8 @@
   padding: 20px;
   overflow-y: auto;
   transition: background-color 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 [data-theme="dark"] .plants-section {
@@ -277,7 +288,9 @@
 .plants-section h3 {
   color: #2d5016;
   margin-top: 0;
+  margin-bottom: 15px;
   transition: color 0.3s ease;
+  flex-shrink: 0;
 }
 
 [data-theme="dark"] .plants-section h3 {
@@ -289,7 +302,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 40px 20px;
   color: #999;
   text-align: center;
   background: white;
@@ -302,6 +315,12 @@
 [data-theme="dark"] .no-plants {
   background: #2d2d2d;
   color: #b0b0b0;
+}
+
+.plants-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .plant-card {
@@ -327,6 +346,14 @@
 
 [data-theme="dark"] .plant-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.plant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .plant-header h4 {
@@ -364,6 +391,12 @@
   margin: 5px 0;
 }
 
+.plant-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .btn {
   padding: 8px 12px;
   border: none;
@@ -374,6 +407,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 0.8em;
 }
 
 .btn-primary {

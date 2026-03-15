@@ -3,6 +3,7 @@ import "./AddPlantButton.css";
 
 export default function AddPlantButton({
   areaId,
+  area,
   onPlantCreated,
   user,
   mapCoordinates,
@@ -18,12 +19,63 @@ export default function AddPlantButton({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Auto-open modal when map coordinates are selected
+  // Check if a point is inside a rectangle boundary
+  const isPointInRectangle = (lat, lng, bounds) => {
+    const [sw, ne] = bounds;
+    const [swLat, swLng] = sw;
+    const [neLat, neLng] = ne;
+    return lat >= swLat && lat <= neLat && lng >= swLng && lng <= neLng;
+  };
+
+  // Check if a point is inside a polygon using ray casting algorithm
+  const isPointInPolygon = (lat, lng, polygon) => {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const [lat1, lng1] = polygon[i];
+      const [lat2, lng2] = polygon[j];
+      const intersect =
+        lng > Math.min(lng1, lng2) &&
+        lng <= Math.max(lng1, lng2) &&
+        lat <= Math.max(lat1, lat2) &&
+        (lng1 === lng2 ||
+          lat < ((lat2 - lat1) * (lng - lng1)) / (lng2 - lng1) + lat1);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+
+  // Check if coordinates are within the area boundary
+  const isWithinArea = (lat, lng) => {
+    if (!area || !area.bounds_json) return true; // Allow if no bounds defined
+
+    try {
+      const bounds = JSON.parse(area.bounds_json);
+      if (!bounds) return true;
+
+      if (area.type === "rectangle" && bounds.length === 2) {
+        return isPointInRectangle(lat, lng, bounds);
+      } else if (area.type === "polygon" && Array.isArray(bounds[0])) {
+        return isPointInPolygon(lat, lng, bounds);
+      }
+      return true;
+    } catch (e) {
+      console.error("Error checking bounds:", e);
+      return true; // Allow if error parsing bounds
+    }
+  };
+
+  // Validate coordinates when they change
   useEffect(() => {
     if (mapCoordinates) {
-      setShowModal(true);
+      if (!isWithinArea(mapCoordinates.lat, mapCoordinates.lng)) {
+        setError(
+          "❌ Plant location is OUTSIDE the area boundary. Please click inside the area on the map.",
+        );
+      } else {
+        setError(""); // Clear error if coordinates are valid
+      }
     }
-  }, [mapCoordinates]);
+  }, [mapCoordinates, area]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,6 +83,19 @@ export default function AddPlantButton({
 
     if (!name.trim()) {
       setError("Plant name is required");
+      return;
+    }
+
+    if (!mapCoordinates) {
+      setError("Please click on the map to set the plant location first");
+      return;
+    }
+
+    // Check if coordinates are within area bounds
+    if (!isWithinArea(mapCoordinates.lat, mapCoordinates.lng)) {
+      setError(
+        "Plant location must be within the area boundary. Please select a location inside the area.",
+      );
       return;
     }
 
@@ -48,8 +113,8 @@ export default function AddPlantButton({
           areaId,
           name,
           type,
-          lat: mapCoordinates?.lat || 0,
-          lng: mapCoordinates?.lng || 0,
+          lat: mapCoordinates.lat,
+          lng: mapCoordinates.lng,
           wateringFrequencyDays: parseInt(wateringFreq),
           status,
           soilMoisture: soilMoisture ? parseInt(soilMoisture) : null,
@@ -103,102 +168,107 @@ export default function AddPlantButton({
 
             {error && <div className="error-message">{error}</div>}
 
-            {mapCoordinates ? (
-              <div className="success-message">
-                ✓ Location selected on map: ({mapCoordinates.lat.toFixed(4)},{" "}
-                {mapCoordinates.lng.toFixed(4)})
-              </div>
-            ) : (
-              <div className="info-message">
-                ℹ️ First, close this form and click on the map to place the
-                plant
-              </div>
+            {!error?.includes("OUTSIDE") && (
+              <>
+                {mapCoordinates ? (
+                  <div className="success-message">
+                    ✓ Location selected on map: ({mapCoordinates.lat.toFixed(4)}
+                    , {mapCoordinates.lng.toFixed(4)})
+                  </div>
+                ) : (
+                  <div className="info-message">
+                    ℹ️ Please close this form, click on the map to mark the
+                    plant location, then click "Add Plant" again to fill in the
+                    details
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit}>
+                  <div className="form-group">
+                    <label>Plant Name *</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g., Rose Bush"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Plant Type</label>
+                    <input
+                      type="text"
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      placeholder="e.g., flowering plant"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Watering Frequency (days) *</label>
+                    <input
+                      type="number"
+                      value={wateringFreq}
+                      onChange={(e) => setWateringFreq(e.target.value)}
+                      min="1"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Status</label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                    >
+                      <option value="healthy">Healthy</option>
+                      <option value="needs_water">Needs Water</option>
+                      <option value="diseased">Diseased</option>
+                      <option value="dormant">Dormant</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Soil Moisture (%)</label>
+                    <input
+                      type="number"
+                      value={soilMoisture}
+                      onChange={(e) => setSoilMoisture(e.target.value)}
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Notes</label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Additional notes"
+                      rows="2"
+                    />
+                  </div>
+
+                  <div className="modal-actions">
+                    <button
+                      type="button"
+                      className="btn btn-cancel"
+                      onClick={() => setShowModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={loading}
+                    >
+                      {loading ? "Adding..." : "Add Plant"}
+                    </button>
+                  </div>
+                </form>
+              </>
             )}
-
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Plant Name *</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Rose Bush"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Plant Type</label>
-                <input
-                  type="text"
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  placeholder="e.g., flowering plant"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Watering Frequency (days) *</label>
-                <input
-                  type="number"
-                  value={wateringFreq}
-                  onChange={(e) => setWateringFreq(e.target.value)}
-                  min="1"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="healthy">Healthy</option>
-                  <option value="needs_water">Needs Water</option>
-                  <option value="diseased">Diseased</option>
-                  <option value="dormant">Dormant</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Soil Moisture (%)</label>
-                <input
-                  type="number"
-                  value={soilMoisture}
-                  onChange={(e) => setSoilMoisture(e.target.value)}
-                  min="0"
-                  max="100"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Notes</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Additional notes"
-                  rows="2"
-                />
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn btn-cancel"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? "Adding..." : "Add Plant"}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
