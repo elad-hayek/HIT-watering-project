@@ -29,8 +29,6 @@ export default function Activity({ user }) {
   // Fetch logs
   const fetchLogs = useCallback(
     async (newOffset = 0) => {
-      if (!hasMore && newOffset > 0) return;
-
       try {
         setLoading(true);
         const params = new URLSearchParams();
@@ -56,16 +54,16 @@ export default function Activity({ user }) {
           setLogs((prev) => [...prev, ...data.logs]);
         }
 
-        setHasMore(
-          data.logs.length > 0 && data.total > newOffset + data.logs.length,
-        );
+        // HasMore is true only if we got a full page of results
+        // If we got fewer than 30 items, we've reached the end
+        setHasMore(data.logs.length === 30);
       } catch (err) {
         console.error("Error fetching logs:", err);
       } finally {
         setLoading(false);
       }
     },
-    [user.username, filterUser, filterAction, hasMore],
+    [user.username, filterUser, filterAction],
   );
 
   // Fetch available users and actions for filters
@@ -99,7 +97,12 @@ export default function Activity({ user }) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !loading &&
+          logs.length > 0
+        ) {
           const newOffset = logs.length;
           fetchLogs(newOffset);
         }
@@ -267,17 +270,6 @@ export default function Activity({ user }) {
               itemCount={logs.length}
               itemSize={100}
               width="100%"
-              onScroll={({ scrollOffset }) => {
-                // Trigger infinite scroll when scrolling near bottom
-                if (logs.length > 0) {
-                  const scrolledPercent =
-                    (scrollOffset + listHeight) / (logs.length * 100);
-                  if (scrolledPercent > 0.8 && hasMore && !loading) {
-                    const newOffset = logs.length;
-                    fetchLogs(newOffset);
-                  }
-                }
-              }}
             >
               {({ index, style }) => {
                 const log = logs[index];
@@ -351,11 +343,8 @@ export default function Activity({ user }) {
               </div>
             )}
 
-            {!hasMore && logs.length > 0 && (
-              <div className="logs-end">
-                <p>No more logs to load</p>
-              </div>
-            )}
+            {/* Observer target is always rendered so the message only shows when user scrolls to the bottom */}
+            <div ref={observerTarget} className="observer-target"></div>
           </div>
         )}
       </div>
