@@ -1,10 +1,16 @@
--- Create watering_db Database and Tables
+-- ============================================================================
+-- Migration 001: Initial Schema
+-- Description: Creates the watering_db database and all base tables
+-- Date Created: 2026-03-15
+-- ============================================================================
 
 -- Create Database
 CREATE DATABASE IF NOT EXISTS watering_db CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 USE watering_db;
 
+-- ============================================================================
 -- Users Table
+-- ============================================================================
 DROP TABLE IF EXISTS users;
 CREATE TABLE users (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -20,7 +26,9 @@ CREATE TABLE users (
   CONSTRAINT `chk_username_9digits` CHECK (regexp_like(`username`,_utf8mb4'^[0-9]{9}$'))
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ============================================================================
 -- Areas Table
+-- ============================================================================
 DROP TABLE IF EXISTS areas;
 CREATE TABLE areas (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -37,7 +45,9 @@ CREATE TABLE areas (
   FOREIGN KEY (`created_by`) REFERENCES users(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ============================================================================
 -- Plants/Watering Stations Table
+-- ============================================================================
 DROP TABLE IF EXISTS plants;
 CREATE TABLE plants (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -60,7 +70,9 @@ CREATE TABLE plants (
   CONSTRAINT `fk_plants_user` FOREIGN KEY (`created_by`) REFERENCES users(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ============================================================================
 -- Audit Log Table
+-- ============================================================================
 DROP TABLE IF EXISTS audit_log;
 CREATE TABLE audit_log (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -77,7 +89,9 @@ CREATE TABLE audit_log (
   KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ============================================================================
 -- Sample Data
+-- ============================================================================
 INSERT INTO users (username, password, lastname, name, title, city) VALUES
   ('340969674', '123456', 'Demo', 'Admin', 'Administrator', 'Tel Aviv'),
   ('111111111', 'password123', 'User', 'Test', 'Manager', 'Jerusalem'),

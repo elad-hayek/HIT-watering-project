@@ -4,7 +4,12 @@ const db = require("./Database");
 const multer = require("multer");
 const path = require("path");
 const { writeAudit } = require("./logs");
-const { ROLES, canManageAreas, canViewAllAreas } = require("./rbac");
+const {
+  ROLES,
+  canManageAreas,
+  canViewAllAreas,
+  hasAreaUpdatePermission,
+} = require("./rbac");
 const { requireAuth, requireRole } = require("./rbacMiddleware");
 
 // Configure multer for file uploads
@@ -19,8 +24,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // GET /api/areas - Get areas based on user role
-// Admin: sees all areas
-// Area Manager & User: sees only assigned areas
+// Admin: sees all areas (with 'update' permission)
+// Area Manager & User: sees only assigned areas (with their assigned permission)
 router.get("/", requireAuth, (req, res) => {
   const userId = req.userId;
   const userRole = req.userRole;
@@ -29,7 +34,7 @@ router.get("/", requireAuth, (req, res) => {
 
   if (canViewAllAreas(userRole)) {
     // Admin sees all areas
-    sql = `SELECT * FROM areas ORDER BY created_at DESC`;
+    sql = `SELECT *, 'update' as permission FROM areas ORDER BY created_at DESC`;
     db.query(sql, (err, results) => {
       if (err) {
         console.error("❌ Get areas error:", err);
@@ -38,8 +43,8 @@ router.get("/", requireAuth, (req, res) => {
       res.json({ areas: results });
     });
   } else {
-    // Area Manager and User see only assigned areas
-    sql = `SELECT DISTINCT a.* FROM areas a
+    // Area Manager and User see only assigned areas with their permissions
+    sql = `SELECT DISTINCT a.*, uam.permission FROM areas a
            INNER JOIN user_area_mapping uam ON a.id = uam.area_id
            WHERE uam.user_id = ?
            ORDER BY a.created_at DESC`;
@@ -64,12 +69,12 @@ router.get("/:id", requireAuth, (req, res) => {
   let params;
 
   if (canViewAllAreas(userRole)) {
-    // Admin sees all areas
-    sql = `SELECT * FROM areas WHERE id = ? LIMIT 1`;
+    // Admin sees all areas, always has update permission
+    sql = `SELECT *, 'update' as permission FROM areas WHERE id = ? LIMIT 1`;
     params = [id];
   } else {
-    // Area Manager and User must have access
-    sql = `SELECT a.* FROM areas a
+    // Area Manager and User must have access and get their permission
+    sql = `SELECT a.*, uam.permission FROM areas a
            INNER JOIN user_area_mapping uam ON a.id = uam.area_id
            WHERE a.id = ? AND uam.user_id = ?
            LIMIT 1`;
@@ -144,8 +149,7 @@ router.post("/", requireRole(ROLES.AREA_MANAGER), (req, res) => {
 });
 
 // PUT /api/areas/:id - Update area
-// Only Area Managers and Admins can update
-// Area Managers can only update their own areas
+// Area Members with 'update' permission and Admins can update
 router.put("/:id", requireAuth, (req, res) => {
   const { id } = req.params;
   const { name, description, type, bounds_json, positions } = req.body;
@@ -160,15 +164,24 @@ router.put("/:id", requireAuth, (req, res) => {
       .json({ error: "You do not have permission to update areas" });
   }
 
-  // For area managers, verify they have access to this area
+  // For area managers and users, verify they have update permission
   let checkAccessSql;
   if (userRole !== ROLES.ADMIN) {
-    checkAccessSql = `SELECT id FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
+    checkAccessSql = `SELECT permission FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
     db.query(checkAccessSql, [userId, id], (checkErr, checkResults) => {
       if (checkErr || checkResults.length === 0) {
         return res
           .status(403)
           .json({ error: "You do not have access to this area" });
+      }
+      // Check if permission is 'update'
+      if (!hasAreaUpdatePermission(userRole, checkResults[0].permission)) {
+        return res
+          .status(403)
+          .json({
+            error:
+              "You do not have permission to update this area. Your access is read-only.",
+          });
       }
       performUpdate();
     });
@@ -217,48 +230,75 @@ router.put("/:id", requireAuth, (req, res) => {
 });
 
 // DELETE /api/areas/:id - Delete area
-// Only Admins can delete areas
-router.delete("/:id", requireRole(ROLES.ADMIN), (req, res) => {
+// Only Area Managers and Admins can delete areas
+// Users with just 'update' permission cannot delete
+router.delete("/:id", requireAuth, (req, res) => {
   const { id } = req.params;
+  const userId = req.userId;
+  const userRole = req.userRole;
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // First, get the area details before deleting
-  const getAreaSql = `SELECT name FROM areas WHERE id = ? LIMIT 1`;
-  db.query(getAreaSql, [id], (err, results) => {
-    if (err) {
-      console.error("❌ Get area details error:", err);
-      return res.status(500).json({ error: "Database error" });
-    }
+  // Only admins and area managers with the area can delete
+  if (userRole === ROLES.ADMIN) {
+    // Admin can delete any area
+    performDelete();
+  } else if (userRole === ROLES.AREA_MANAGER) {
+    // Area Manager can only delete their own areas
+    const checkAccessSql = `SELECT id FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
+    db.query(checkAccessSql, [userId, id], (checkErr, checkResults) => {
+      if (checkErr || checkResults.length === 0) {
+        return res
+          .status(403)
+          .json({ error: "You do not have access to this area" });
+      }
+      performDelete();
+    });
+  } else {
+    // Users cannot delete areas, even with update permission
+    return res
+      .status(403)
+      .json({ error: "Only Area Managers or Administrators can delete areas" });
+  }
 
-    const areaName = results.length > 0 ? results[0].name : "Unknown Area";
-
-    const deleteSql = `DELETE FROM areas WHERE id = ?`;
-
-    db.query(deleteSql, [id], async (err) => {
+  function performDelete() {
+    // First, get the area details before deleting
+    const getAreaSql = `SELECT name FROM areas WHERE id = ? LIMIT 1`;
+    db.query(getAreaSql, [id], (err, results) => {
       if (err) {
-        console.error("❌ Delete area error:", err);
+        console.error("❌ Get area details error:", err);
         return res.status(500).json({ error: "Database error" });
       }
 
-      try {
-        await writeAudit({
-          action: "area_delete",
-          entity_type: "area",
-          entity_id: id,
-          actor,
-          ip,
-          details: { name: areaName },
-        });
-      } catch (_) {}
+      const areaName = results.length > 0 ? results[0].name : "Unknown Area";
 
-      res.json({ message: "Area deleted" });
+      const deleteSql = `DELETE FROM areas WHERE id = ?`;
+
+      db.query(deleteSql, [id], async (err) => {
+        if (err) {
+          console.error("❌ Delete area error:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
+
+        try {
+          await writeAudit({
+            action: "area_delete",
+            entity_type: "area",
+            entity_id: id,
+            actor,
+            ip,
+            details: { name: areaName },
+          });
+        } catch (_) {}
+
+        res.json({ message: "Area deleted" });
+      });
     });
-  });
+  }
 });
 
 // POST /api/areas/:id/photo - Upload area photo
-// Only Area Managers and Admins with access can upload
+// Area Members with 'update' permission and Admins can upload
 router.post(
   "/:id/photo",
   requireAuth,
@@ -281,14 +321,23 @@ router.post(
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Check access for area managers
+    // Check access and permission for area managers and users
     if (userRole !== ROLES.ADMIN) {
-      const checkAccessSql = `SELECT id FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
+      const checkAccessSql = `SELECT permission FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
       db.query(checkAccessSql, [userId, id], (checkErr, checkResults) => {
         if (checkErr || checkResults.length === 0) {
           return res
             .status(403)
             .json({ error: "You do not have access to this area" });
+        }
+        // Check if permission is 'update'
+        if (!hasAreaUpdatePermission(userRole, checkResults[0].permission)) {
+          return res
+            .status(403)
+            .json({
+              error:
+                "You do not have permission to update this area. Your access is read-only.",
+            });
         }
         performUpload();
       });

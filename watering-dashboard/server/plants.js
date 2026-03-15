@@ -2,7 +2,12 @@ const express = require("express");
 const router = express.Router();
 const db = require("./Database");
 const { writeAudit } = require("./logs");
-const { ROLES, canManageAreas, canViewAllAreas } = require("./rbac");
+const {
+  ROLES,
+  canManageAreas,
+  canViewAllAreas,
+  hasAreaUpdatePermission,
+} = require("./rbac");
 const { requireAuth, requireRole } = require("./rbacMiddleware");
 
 // Helper functions for geometry
@@ -115,7 +120,7 @@ router.get("/:id", requireAuth, (req, res) => {
 });
 
 // POST /api/plants - Create new plant
-// Only Area Managers and Admins can create plants in their areas
+// Area Members with 'update' permission and Admins can create plants
 router.post("/", requireAuth, (req, res) => {
   const {
     areaId,
@@ -145,12 +150,12 @@ router.post("/", requireAuth, (req, res) => {
       .json({ error: "Area ID, name, and coordinates are required" });
   }
 
-  // Check area access for area managers
+  // Check area access and permission for area managers/users
   let checkAccessSql;
   let checkAccessParams;
 
   if (userRole !== ROLES.ADMIN) {
-    checkAccessSql = `SELECT id FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
+    checkAccessSql = `SELECT permission FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
     checkAccessParams = [userId, areaId];
   } else {
     checkAccessSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
@@ -162,6 +167,19 @@ router.post("/", requireAuth, (req, res) => {
       return res
         .status(403)
         .json({ error: "You do not have access to this area" });
+    }
+
+    // For non-admin users, check if they have update permission
+    if (
+      userRole !== ROLES.ADMIN &&
+      !hasAreaUpdatePermission(userRole, accessResults[0].permission)
+    ) {
+      return res
+        .status(403)
+        .json({
+          error:
+            "You do not have permission to add plants to this area. Your access is read-only.",
+        });
     }
 
     // First, get the area to validate coordinates are within bounds
@@ -260,7 +278,7 @@ router.post("/", requireAuth, (req, res) => {
 });
 
 // PUT /api/plants/:id - Update plant
-// Only Area Managers and Admins with access can update
+// Area Members with 'update' permission and Admins can update
 router.put("/:id", requireAuth, (req, res) => {
   const { id } = req.params;
   const {
@@ -299,15 +317,26 @@ router.put("/:id", requireAuth, (req, res) => {
 
     const areaId = plantResults[0].area_id;
 
-    // Check area access for area managers
+    // Check area access and permission for area managers/users
     if (userRole !== ROLES.ADMIN) {
-      const checkAccessSql = `SELECT id FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
+      const checkAccessSql = `SELECT permission FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
       db.query(checkAccessSql, [userId, areaId], (accessErr, accessResults) => {
         if (accessErr || accessResults.length === 0) {
           return res
             .status(403)
             .json({ error: "You do not have access to this plant" });
         }
+
+        // Check if they have update permission
+        if (!hasAreaUpdatePermission(userRole, accessResults[0].permission)) {
+          return res
+            .status(403)
+            .json({
+              error:
+                "You do not have permission to update plants in this area. Your access is read-only.",
+            });
+        }
+
         performUpdate();
       });
     } else {
@@ -361,43 +390,85 @@ router.put("/:id", requireAuth, (req, res) => {
 });
 
 // DELETE /api/plants/:id - Delete plant
-// Only Admins can delete plants
-router.delete("/:id", requireRole(ROLES.ADMIN), (req, res) => {
+// Area Members with 'update' permission and Admins can delete
+router.delete("/:id", requireAuth, (req, res) => {
   const { id } = req.params;
+  const userId = req.userId;
+  const userRole = req.userRole;
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // First, get the plant details before deleting
-  const getPlantSql = `SELECT name FROM plants WHERE id = ? LIMIT 1`;
+  // First, get the plant details
+  const getPlantSql = `SELECT id, name, area_id FROM plants WHERE id = ? LIMIT 1`;
   db.query(getPlantSql, [id], (err, results) => {
     if (err) {
       console.error("❌ Get plant details error:", err);
       return res.status(500).json({ error: "Database error" });
     }
 
-    const plantName = results.length > 0 ? results[0].name : "Unknown Plant";
+    if (!results || results.length === 0) {
+      return res.status(404).json({ error: "Plant not found" });
+    }
 
-    const deleteSql = `DELETE FROM plants WHERE id = ?`;
+    const plant = results[0];
+    const plantName = plant.name || "Unknown Plant";
+    const areaId = plant.area_id;
 
-    db.query(deleteSql, [id], async (err) => {
-      if (err) {
-        console.error("❌ Delete plant error:", err);
-        return res.status(500).json({ error: "Database error" });
-      }
+    // Check permissions
+    if (userRole === ROLES.ADMIN) {
+      // Admin can delete any plant
+      performDelete();
+    } else if (canManageAreas(userRole)) {
+      // Area Members can delete if they have 'update' permission
+      const checkAccessSql = `SELECT permission FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
+      db.query(checkAccessSql, [userId, areaId], (accessErr, accessResults) => {
+        if (accessErr || accessResults.length === 0) {
+          return res
+            .status(403)
+            .json({ error: "You do not have access to this plant" });
+        }
 
-      try {
-        await writeAudit({
-          action: "plant_delete",
-          entity_type: "plant",
-          entity_id: id,
-          actor,
-          ip,
-          details: { name: plantName },
-        });
-      } catch (_) {}
+        if (!hasAreaUpdatePermission(userRole, accessResults[0].permission)) {
+          return res
+            .status(403)
+            .json({
+              error:
+                "You do not have permission to delete plants in this area. Your access is read-only.",
+            });
+        }
 
-      res.json({ message: "Plant deleted" });
-    });
+        performDelete();
+      });
+    } else {
+      // Users cannot delete plants
+      return res
+        .status(403)
+        .json({ error: "You do not have permission to delete plants" });
+    }
+
+    function performDelete() {
+      const deleteSql = `DELETE FROM plants WHERE id = ?`;
+
+      db.query(deleteSql, [id], async (err) => {
+        if (err) {
+          console.error("❌ Delete plant error:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
+
+        try {
+          await writeAudit({
+            action: "plant_delete",
+            entity_type: "plant",
+            entity_id: id,
+            actor,
+            ip,
+            details: { name: plantName },
+          });
+        } catch (_) {}
+
+        res.json({ message: "Plant deleted" });
+      });
+    }
   });
 });
 

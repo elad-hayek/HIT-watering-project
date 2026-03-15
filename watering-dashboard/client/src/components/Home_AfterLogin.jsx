@@ -6,6 +6,10 @@ import AddPlantButton from "./AddPlantButton";
 import EditPlantModal from "./EditPlantModal";
 import AreaDetailMap from "./AreaDetailMap";
 import { getStatusDisplay } from "../utils/statusMapping";
+import {
+  hasUpdatePermission,
+  getPermissionDisplay,
+} from "../utils/permissions";
 
 export default function HomeAfterLogin({ user }) {
   const [areas, setAreas] = useState([]);
@@ -188,19 +192,28 @@ export default function HomeAfterLogin({ user }) {
                     <p className="area-desc">
                       {area.description || "No description"}
                     </p>
-                    <span className="area-meta">{area.type}</span>
+                    <div className="area-meta-row">
+                      <span className="area-meta">{area.type}</span>
+                      <span
+                        className={`area-permission permission-${area.permission}`}
+                      >
+                        {getPermissionDisplay(area.permission)}
+                      </span>
+                    </div>
                   </div>
                   <div className="area-actions">
-                    <button
-                      className="btn-icon btn-danger"
-                      title="Delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteArea(area.id);
-                      }}
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
+                    {hasUpdatePermission(area.permission) && (
+                      <button
+                        className="btn-icon btn-danger"
+                        title="Delete area"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteArea(area.id);
+                        }}
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -214,14 +227,16 @@ export default function HomeAfterLogin({ user }) {
               <div className="area-header">
                 <h2>{selectedArea.name}</h2>
                 <div className="area-header-actions">
-                  <AddPlantButton
-                    areaId={selectedArea.id}
-                    area={selectedArea}
-                    onPlantCreated={handleAddPlant}
-                    user={user}
-                    mapCoordinates={mapCoordinates}
-                    onMapCoordinatesUsed={() => setMapCoordinates(null)}
-                  />
+                  {hasUpdatePermission(selectedArea.permission) && (
+                    <AddPlantButton
+                      areaId={selectedArea.id}
+                      area={selectedArea}
+                      onPlantCreated={handleAddPlant}
+                      user={user}
+                      mapCoordinates={mapCoordinates}
+                      onMapCoordinatesUsed={() => setMapCoordinates(null)}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -275,18 +290,30 @@ export default function HomeAfterLogin({ user }) {
                             )}
                           </div>
                           <div className="plant-actions">
-                            <button
-                              className="btn btn-sm btn-info"
-                              onClick={() => handleEditPlant(plant)}
-                            >
-                              <i className="fas fa-edit"></i> Edit
-                            </button>
-                            <button
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleDeletePlant(plant.id)}
-                            >
-                              <i className="fas fa-trash"></i> Delete
-                            </button>
+                            {hasUpdatePermission(selectedArea.permission) ? (
+                              <>
+                                <button
+                                  className="btn btn-sm btn-info"
+                                  onClick={() => handleEditPlant(plant)}
+                                >
+                                  <i className="fas fa-edit"></i> Edit
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={() => handleDeletePlant(plant.id)}
+                                >
+                                  <i className="fas fa-trash"></i> Delete
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                className="btn btn-sm btn-secondary"
+                                disabled
+                                title="Read-only access"
+                              >
+                                <i className="fas fa-lock"></i> Read Only
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}

@@ -518,3 +518,74 @@
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background: #66bb6a;
 }
+
+/* Permission Badge Styles */
+.area-meta-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.area-permission {
+  display: inline-block;
+  font-size: 0.75em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.area-permission.permission-read {
+  background: #2196f3;
+  color: white;
+}
+
+[data-theme="dark"] .area-permission.permission-read {
+  background: #1976d2;
+}
+
+.area-permission.permission-update {
+  background: #4caf50;
+  color: white;
+}
+
+[data-theme="dark"] .area-permission.permission-update {
+  background: #45a049;
+}
+
+.area-permission.permission-admin {
+  background: #ff9800;
+  color: white;
+}
+
+[data-theme="dark"] .area-permission.permission-admin {
+  background: #e68900;
+}
+
+.area-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.area-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Read-only button style */
+.btn.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #cccccc;
+  color: #666666;
+  border-color: #999999;
+}
+
+[data-theme="dark"] .btn.btn-secondary:disabled {
+  background-color: #555555;
+  color: #999999;
+}

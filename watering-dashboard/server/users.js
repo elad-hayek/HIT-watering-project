@@ -62,12 +62,10 @@ router.post("/register", (req, res) => {
             });
           } catch (_) {}
 
-          res
-            .status(201)
-            .json({
-              message: "User registered with User role",
-              userId: result.insertId,
-            });
+          res.status(201).json({
+            message: "User registered with User role",
+            userId: result.insertId,
+          });
         },
       );
     },
@@ -289,16 +287,24 @@ router.put("/:id/role", requireAuth, async (req, res) => {
 
 // POST /api/users/:userId/areas/:areaId - Assign area to user (Area Manager)
 // This is for area managers to assign areas to users
+// Request body: { permission: 'read' | 'update' }
 router.post(
   "/:userId/areas/:areaId",
   requireRole(ROLES.AREA_MANAGER),
   async (req, res) => {
     const { userId, areaId } = req.params;
+    const { permission } = req.body;
     const managerRole = req.userRole;
     const managerId = req.userId;
     const actor = req.headers["x-user"] || "unknown";
     const ip =
       req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
+
+    // Validate permission
+    const validPermissions = ["read", "update"];
+    const finalPermission = validPermissions.includes(permission)
+      ? permission
+      : "read";
 
     // Get target user to verify they are lower role
     db.query(
@@ -323,34 +329,44 @@ router.post(
           });
         }
 
-        // Insert area mapping
-        const sql = `INSERT INTO user_area_mapping (user_id, area_id, assigned_by) 
-                   VALUES (?, ?, ?)
-                   ON DUPLICATE KEY UPDATE assigned_at = CURRENT_TIMESTAMP`;
+        // Insert area mapping with permission
+        const sql = `INSERT INTO user_area_mapping (user_id, area_id, permission, assigned_by) 
+                   VALUES (?, ?, ?, ?)
+                   ON DUPLICATE KEY UPDATE permission = ?, assigned_at = CURRENT_TIMESTAMP`;
 
-        db.query(sql, [userId, areaId, managerId], async (err2) => {
-          if (err2) {
-            console.error("❌ Assign area DB error:", err2);
-            return res.status(500).json({ error: "Database error" });
-          }
+        db.query(
+          sql,
+          [userId, areaId, finalPermission, managerId, finalPermission],
+          async (err2) => {
+            if (err2) {
+              console.error("❌ Assign area DB error:", err2);
+              return res.status(500).json({ error: "Database error" });
+            }
 
-          try {
-            await writeAudit({
-              action: "area_assigned_to_user",
-              entity_type: "user_area",
-              entity_id: userId,
-              actor,
-              ip,
-              details: { userId, areaId, assignedBy: managerId },
+            try {
+              await writeAudit({
+                action: "area_assigned_to_user",
+                entity_type: "user_area",
+                entity_id: userId,
+                actor,
+                ip,
+                details: {
+                  userId,
+                  areaId,
+                  permission: finalPermission,
+                  assignedBy: managerId,
+                },
+              });
+            } catch (_) {}
+
+            res.json({
+              message: "Area assigned to user",
+              userId,
+              areaId,
+              permission: finalPermission,
             });
-          } catch (_) {}
-
-          res.json({
-            message: "Area assigned to user",
-            userId,
-            areaId,
-          });
-        });
+          },
+        );
       },
     );
   },
@@ -398,7 +414,7 @@ router.delete(
 router.get("/:userId/areas", (req, res) => {
   const { userId } = req.params;
 
-  const sql = `SELECT a.* FROM areas a
+  const sql = `SELECT a.*, uam.permission FROM areas a
                INNER JOIN user_area_mapping uam ON a.id = uam.area_id
                WHERE uam.user_id = ?
                ORDER BY a.created_at DESC`;

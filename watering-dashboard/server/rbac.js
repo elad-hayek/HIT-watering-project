@@ -125,6 +125,52 @@ function getRoleDisplayName(role) {
   return displayNames[role] || role;
 }
 
+/**
+ * Check if a user has specific permission on an area
+ * Rules:
+ * - Admin: always has 'update' permission
+ * - Area Manager: permission is determined by user_area_mapping record
+ * - User: permission is determined by user_area_mapping record (usually 'read' only)
+ * @param {string} userRole - User's role
+ * @param {string} areaPermission - Permission from user_area_mapping ('read' or 'update')
+ * @returns {boolean} - True if user has update permission
+ */
+function hasAreaUpdatePermission(userRole, areaPermission) {
+  // Admin always has update permission
+  if (userRole === ROLES.ADMIN) {
+    return true;
+  }
+  // Check if permission is 'update'
+  return areaPermission === "update";
+}
+
+/**
+ * Check if a user has read permission on an area
+ * Rules:
+ * - Admin: always has read permission
+ * - Area Manager/User: if assigned to area, they have read permission
+ * @param {string} userRole - User's role
+ * @returns {boolean} - True if user can read the area
+ */
+function hasAreaReadPermission(userRole) {
+  // Anyone assigned to an area can read it
+  return (
+    userRole === ROLES.ADMIN ||
+    userRole === ROLES.AREA_MANAGER ||
+    userRole === ROLES.USER
+  );
+}
+
+/**
+ * Check if a user can delete an area
+ * Only admins and area managers can delete areas
+ * @param {string} userRole - User's role
+ * @returns {boolean}
+ */
+function canDeleteArea(userRole) {
+  return userRole === ROLES.ADMIN || userRole === ROLES.AREA_MANAGER;
+}
+
 module.exports = {
   ROLES,
   ROLE_HIERARCHY,
@@ -136,4 +182,7 @@ module.exports = {
   canViewAllAreas,
   canManageUsers,
   getRoleDisplayName,
+  hasAreaUpdatePermission,
+  hasAreaReadPermission,
+  canDeleteArea,
 };
