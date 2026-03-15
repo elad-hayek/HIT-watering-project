@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import "./AreaDetailMap.css";
+import { getStatusDisplay } from "../utils/statusMapping";
 
 export default function AreaDetailMap({ area, plants, user, onMapClick }) {
   const mapRef = useRef(null);
@@ -106,7 +107,7 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
                   fillOpacity: 0.8,
                 })
                   .bindPopup(
-                    `<strong>${plant.name}</strong><br/>${plant.type || ""}<br/>Status: ${plant.status}`,
+                    `<strong>${plant.name}</strong><br/>${plant.type || ""}<br/>Status: ${getStatusDisplay(plant.status)}`,
                   )
                   .addTo(map);
                 plantsMarkersRef.current.push(marker);

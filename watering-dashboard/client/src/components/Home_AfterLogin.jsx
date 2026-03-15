@@ -5,6 +5,7 @@ import EditAreaModal from "./EditAreaModal";
 import AddPlantButton from "./AddPlantButton";
 import EditPlantModal from "./EditPlantModal";
 import AreaDetailMap from "./AreaDetailMap";
+import { getStatusDisplay } from "../utils/statusMapping";
 
 export default function HomeAfterLogin({ user }) {
   const [areas, setAreas] = useState([]);
@@ -221,7 +222,7 @@ export default function HomeAfterLogin({ user }) {
                           <div className="plant-header">
                             <h4>{plant.name}</h4>
                             <span className={`status-badge ${plant.status}`}>
-                              {plant.status}
+                              {getStatusDisplay(plant.status)}
                             </span>
                           </div>
                           <div className="plant-info">
