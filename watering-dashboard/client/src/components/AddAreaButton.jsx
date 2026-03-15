@@ -16,19 +16,24 @@ export default function AddAreaButton({ onAreaCreated, user }) {
 
   // Initialize map when modal opens or type changes
   useEffect(() => {
-    if (showModal && mapRef.current) {
-      // If shape already drawn and type changes, clear the shape and reinit
-      if (drawnShape) {
-        setDrawnShape(null);
+    if (showModal) {
+      document.documentElement.setAttribute("data-add-area-modal-open", "true");
+      if (mapRef.current) {
+        // If shape already drawn and type changes, clear the shape and reinit
+        if (drawnShape) {
+          setDrawnShape(null);
+        }
+        // Always reinitialize map when type changes
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+          mapInstanceRef.current = null;
+          setMapInitialized(false);
+        }
+        // Reinitialize with new type
+        initializeMap();
       }
-      // Always reinitialize map when type changes
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-        setMapInitialized(false);
-      }
-      // Reinitialize with new type
-      initializeMap();
+    } else {
+      document.documentElement.removeAttribute("data-add-area-modal-open");
     }
   }, [showModal, type]);
 
@@ -75,13 +80,15 @@ export default function AddAreaButton({ onAreaCreated, user }) {
         position: "topright",
         draw: {
           polygon: type === "polygon",
-          polyline: false,
           rectangle: type === "rectangle",
+          polyline: false,
           circle: false,
+          circlemarker: false,
           marker: false,
         },
         edit: {
           featureGroup: drawnItems,
+          edit: false,
           remove: true,
         },
       });

@@ -59,3 +59,14 @@
   margin: 0;
   font-size: 0.85em;
 }
+
+/* Hide map controls in AreaDetailMap when add area modal is open */
+html[data-add-area-modal-open="true"] .map-container .leaflet-control {
+  display: none !important;
+}
+
+html[data-add-area-modal-open="true"]
+  .map-container
+  .leaflet-control-attribution {
+  display: none !important;
+}
