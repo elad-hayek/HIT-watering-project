@@ -152,25 +152,37 @@ router.delete("/:id", (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  const sql = `DELETE FROM areas WHERE id = ?`;
-
-  db.query(sql, [id], async (err) => {
+  // First, get the area details before deleting
+  const getAreaSql = `SELECT name FROM areas WHERE id = ? LIMIT 1`;
+  db.query(getAreaSql, [id], (err, results) => {
     if (err) {
-      console.error("❌ Delete area error:", err);
+      console.error("❌ Get area details error:", err);
       return res.status(500).json({ error: "Database error" });
     }
 
-    try {
-      await writeAudit({
-        action: "area_delete",
-        entity_type: "area",
-        entity_id: id,
-        actor,
-        ip,
-      });
-    } catch (_) {}
+    const areaName = results.length > 0 ? results[0].name : "Unknown Area";
 
-    res.json({ message: "Area deleted" });
+    const deleteSql = `DELETE FROM areas WHERE id = ?`;
+
+    db.query(deleteSql, [id], async (err) => {
+      if (err) {
+        console.error("❌ Delete area error:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      try {
+        await writeAudit({
+          action: "area_delete",
+          entity_type: "area",
+          entity_id: id,
+          actor,
+          ip,
+          details: { name: areaName },
+        });
+      } catch (_) {}
+
+      res.json({ message: "Area deleted" });
+    });
   });
 });
 

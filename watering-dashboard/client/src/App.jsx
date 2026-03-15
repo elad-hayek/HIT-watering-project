@@ -4,6 +4,7 @@ import Home from "./components/Home";
 import HomeAfterLogin from "./components/Home_AfterLogin";
 import User from "./components/user";
 import Notification from "./components/notification";
+import Activity from "./components/Activity";
 import Header from "./components/Header";
 import Register from "./components/Register";
 import Login from "./components/LoginPage";
@@ -58,6 +59,10 @@ export default function App() {
         <Route
           path="/"
           element={user ? <HomeAfterLogin user={user} /> : <Home />}
+        />
+        <Route
+          path="/activity"
+          element={user ? <Activity user={user} /> : <Navigate to="/login" />}
         />
         <Route
           path="/user"

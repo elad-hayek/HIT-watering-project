@@ -254,25 +254,37 @@ router.delete("/:id", (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  const sql = `DELETE FROM plants WHERE id = ?`;
-
-  db.query(sql, [id], async (err) => {
+  // First, get the plant details before deleting
+  const getPlantSql = `SELECT name FROM plants WHERE id = ? LIMIT 1`;
+  db.query(getPlantSql, [id], (err, results) => {
     if (err) {
-      console.error("❌ Delete plant error:", err);
+      console.error("❌ Get plant details error:", err);
       return res.status(500).json({ error: "Database error" });
     }
 
-    try {
-      await writeAudit({
-        action: "plant_delete",
-        entity_type: "plant",
-        entity_id: id,
-        actor,
-        ip,
-      });
-    } catch (_) {}
+    const plantName = results.length > 0 ? results[0].name : "Unknown Plant";
 
-    res.json({ message: "Plant deleted" });
+    const deleteSql = `DELETE FROM plants WHERE id = ?`;
+
+    db.query(deleteSql, [id], async (err) => {
+      if (err) {
+        console.error("❌ Delete plant error:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      try {
+        await writeAudit({
+          action: "plant_delete",
+          entity_type: "plant",
+          entity_id: id,
+          actor,
+          ip,
+          details: { name: plantName },
+        });
+      } catch (_) {}
+
+      res.json({ message: "Plant deleted" });
+    });
   });
 });
 

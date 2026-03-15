@@ -25,6 +25,12 @@ export default function Header({ user, setUser, darkMode, setDarkMode }) {
               <Link to="/" className="nav-link">
                 <i className="fas fa-home"></i> Home
               </Link>
+              {(user.title === "Administrator" ||
+                user.username === "340969674") && (
+                <Link to="/activity" className="nav-link">
+                  <i className="fas fa-history"></i> Activity
+                </Link>
+              )}
               <Link to="/user" className="nav-link">
                 <i className="fas fa-user"></i> Profile
               </Link>
