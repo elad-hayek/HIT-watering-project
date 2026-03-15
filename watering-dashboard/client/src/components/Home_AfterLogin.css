@@ -393,25 +393,29 @@
 
 .plant-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-top: 12px;
+  align-items: center;
+  width: fit-content;
 }
 
 .btn {
-  padding: 8px 12px;
+  padding: 4px 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 0.75em;
   transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .btn-sm {
-  padding: 6px 10px;
-  font-size: 0.8em;
+  padding: 2px 4px;
+  font-size: 0.65em;
 }
 
 .btn-primary {
