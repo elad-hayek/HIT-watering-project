@@ -108,7 +108,7 @@
   padding: 15px;
   margin-bottom: 10px;
   background: #f9f9f9;
-  border-left: 4px solid transparent;
+  border-left: 4px solid #2d5016;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
