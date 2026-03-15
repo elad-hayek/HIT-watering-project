@@ -6,12 +6,21 @@ export default function Activity({ user }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
   const [filterUser, setFilterUser] = useState("");
   const [filterAction, setFilterAction] = useState("");
   const [users, setUsers] = useState([]);
   const [actions, setActions] = useState([]);
+  const [listHeight, setListHeight] = useState(window.innerHeight - 100);
   const observerTarget = useRef(null);
+
+  // Update height on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setListHeight(window.innerHeight - 100);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Check if user is admin
   const isAdmin =
@@ -82,7 +91,6 @@ export default function Activity({ user }) {
   // Initial load
   useEffect(() => {
     setLogs([]);
-    setOffset(0);
     setHasMore(true);
     fetchLogs(0);
   }, [filterUser, filterAction]);
@@ -93,7 +101,6 @@ export default function Activity({ user }) {
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loading) {
           const newOffset = logs.length;
-          setOffset(newOffset);
           fetchLogs(newOffset);
         }
       },
@@ -194,56 +201,56 @@ export default function Activity({ user }) {
 
   return (
     <div className="activity-container">
-      <div className="activity-header">
-        <h1>
-          <i className="fas fa-history"></i> Activity Logs
-        </h1>
-        <p>View audit logs for all areas and actions in the system</p>
-      </div>
-
-      <div className="activity-filters">
-        <div className="filter-group">
-          <label htmlFor="filterUser">Filter by User:</label>
-          <select
-            id="filterUser"
-            value={filterUser}
-            onChange={(e) => {
-              setFilterUser(e.target.value);
-              setOffset(0);
-            }}
-            className="filter-select"
-          >
-            <option value="">All Users</option>
-            {users.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
+      <div className="activity-sidebar">
+        <div className="activity-header">
+          <h1>
+            <i className="fas fa-history"></i> Activity Logs
+          </h1>
+          <p>View audit logs for all areas and actions in the system</p>
         </div>
 
-        <div className="filter-group">
-          <label htmlFor="filterAction">Filter by Action:</label>
-          <select
-            id="filterAction"
-            value={filterAction}
-            onChange={(e) => {
-              setFilterAction(e.target.value);
-              setOffset(0);
-            }}
-            className="filter-select"
-          >
-            <option value="">All Actions</option>
-            {actions.map((a) => (
-              <option key={a} value={a}>
-                {getActionLabel(a)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="activity-filters">
+          <div className="filter-group">
+            <label htmlFor="filterUser">Filter by User:</label>
+            <select
+              id="filterUser"
+              value={filterUser}
+              onChange={(e) => {
+                setFilterUser(e.target.value);
+              }}
+              className="filter-select"
+            >
+              <option value="">All Users</option>
+              {users.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="filter-info">
-          <span>{logs.length} logs loaded</span>
+          <div className="filter-group">
+            <label htmlFor="filterAction">Filter by Action:</label>
+            <select
+              id="filterAction"
+              value={filterAction}
+              onChange={(e) => {
+                setFilterAction(e.target.value);
+              }}
+              className="filter-select"
+            >
+              <option value="">All Actions</option>
+              {actions.map((a) => (
+                <option key={a} value={a}>
+                  {getActionLabel(a)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-info">
+            <span>{logs.length} logs loaded</span>
+          </div>
         </div>
       </div>
 
@@ -256,18 +263,17 @@ export default function Activity({ user }) {
         ) : (
           <div className="logs-list-container">
             <List
-              height={600}
+              height={listHeight}
               itemCount={logs.length}
-              itemSize={140}
+              itemSize={100}
               width="100%"
               onScroll={({ scrollOffset }) => {
                 // Trigger infinite scroll when scrolling near bottom
                 if (logs.length > 0) {
                   const scrolledPercent =
-                    (scrollOffset + 600) / (logs.length * 140);
+                    (scrollOffset + listHeight) / (logs.length * 100);
                   if (scrolledPercent > 0.8 && hasMore && !loading) {
                     const newOffset = logs.length;
-                    setOffset(newOffset);
                     fetchLogs(newOffset);
                   }
                 }
