@@ -111,6 +111,62 @@
   color: #b0b0b0;
 }
 
+.user-role {
+  margin: 8px 0;
+  color: #666;
+  font-size: 0.95em;
+  transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-theme="dark"] .user-role {
+  color: #b0b0b0;
+}
+
+.role-readonly {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background-color: #f0f0f0;
+  border-radius: 6px;
+  border: 2px solid #e0e0e0;
+}
+
+[data-theme="dark"] .role-readonly {
+  background-color: #3a3a3a;
+  border-color: #404040;
+}
+
+.role-badge {
+  display: inline-block;
+  background-color: #2d5016;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  width: fit-content;
+  text-transform: capitalize;
+}
+
+[data-theme="dark"] .role-badge {
+  background-color: #4caf50;
+  color: #1a1a1a;
+}
+
+.role-note {
+  margin: 0;
+  font-size: 0.85em;
+  color: #999;
+  font-style: italic;
+}
+
+[data-theme="dark"] .role-note {
+  color: #999;
+}
+
 .message {
   padding: 12px 15px;
   border-radius: 6px;

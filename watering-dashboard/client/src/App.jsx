@@ -8,6 +8,7 @@ import Activity from "./components/Activity";
 import Header from "./components/Header";
 import Register from "./components/Register";
 import Login from "./components/LoginPage";
+import UserManagement from "./components/UserManagement";
 import "./App.css";
 
 export default function App() {
@@ -47,6 +48,16 @@ export default function App() {
     );
   }
 
+  // Helper to check if user has permission to view activity
+  const canViewActivity = () => {
+    return user && (user.role === "area_manager" || user.role === "admin");
+  };
+
+  // Helper to check if user is admin
+  const isAdmin = () => {
+    return user && user.role === "admin";
+  };
+
   return (
     <div className="app">
       <Header
@@ -62,7 +73,27 @@ export default function App() {
         />
         <Route
           path="/activity"
-          element={user ? <Activity user={user} /> : <Navigate to="/login" />}
+          element={
+            canViewActivity() ? (
+              <Activity user={user} />
+            ) : user ? (
+              <Navigate to="/" />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/user-management"
+          element={
+            isAdmin() ? (
+              <UserManagement user={user} />
+            ) : user ? (
+              <Navigate to="/" />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
         />
         <Route
           path="/user"
@@ -76,7 +107,9 @@ export default function App() {
         />
         <Route
           path="/notification"
-          element={user ? <Notification /> : <Navigate to="/login" />}
+          element={
+            user ? <Notification user={user} /> : <Navigate to="/login" />
+          }
         />
         <Route
           path="/register"

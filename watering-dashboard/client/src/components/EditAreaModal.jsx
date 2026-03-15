@@ -36,6 +36,7 @@ export default function EditAreaModal({ area, onClose, onUpdate, user }) {
             "Content-Type": "application/json",
             "x-user": user.username,
             "x-user-id": user.id,
+            "x-user-role": user.role,
           },
           body: JSON.stringify({
             name,

@@ -11,6 +11,27 @@ export default function Header({ user, setUser, darkMode, setDarkMode }) {
     navigate("/");
   };
 
+  // Helper to get role display name
+  const getRoleDisplay = () => {
+    if (!user) return "";
+    const roles = {
+      user: "User",
+      area_manager: "Area Manager",
+      admin: "Administrator",
+    };
+    return roles[user.role] || user.role;
+  };
+
+  // Helper to check if user can view activity
+  const canViewActivity = () => {
+    return user && (user.role === "area_manager" || user.role === "admin");
+  };
+
+  // Helper to check if user is admin
+  const isAdmin = () => {
+    return user && user.role === "admin";
+  };
+
   return (
     <header className="header">
       <div className="header-content">
@@ -25,10 +46,14 @@ export default function Header({ user, setUser, darkMode, setDarkMode }) {
               <Link to="/" className="nav-link">
                 <i className="fas fa-home"></i> Home
               </Link>
-              {(user.title === "Administrator" ||
-                user.username === "340969674") && (
+              {canViewActivity() && (
                 <Link to="/activity" className="nav-link">
                   <i className="fas fa-history"></i> Activity
+                </Link>
+              )}
+              {isAdmin() && (
+                <Link to="/user-management" className="nav-link">
+                  <i className="fas fa-users-cog"></i> User Management
                 </Link>
               )}
               <Link to="/user" className="nav-link">
@@ -46,6 +71,7 @@ export default function Header({ user, setUser, darkMode, setDarkMode }) {
               </button>
               <div className="user-info">
                 <span className="user-name">{user.name}</span>
+                <span className="user-role">{getRoleDisplay()}</span>
               </div>
             </>
           ) : (

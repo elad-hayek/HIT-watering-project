@@ -40,7 +40,11 @@ export default function Activity({ user }) {
         const res = await fetch(
           `http://localhost:3000/api/audit/logs?${params}`,
           {
-            headers: { "x-user": user.username },
+            headers: {
+              "x-user": user.username,
+              "x-user-id": user.id,
+              "x-user-role": user.role,
+            },
           },
         );
 
@@ -71,7 +75,11 @@ export default function Activity({ user }) {
     const fetchFilterOptions = async () => {
       try {
         const res = await fetch("http://localhost:3000/api/audit/filters", {
-          headers: { "x-user": user.username },
+          headers: {
+            "x-user": user.username,
+            "x-user-id": user.id,
+            "x-user-role": user.role,
+          },
         });
         if (res.ok) {
           const data = await res.json();

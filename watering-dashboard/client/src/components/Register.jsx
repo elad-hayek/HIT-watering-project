@@ -9,7 +9,6 @@ export default function Register() {
     confirmPassword: "",
     name: "",
     lastname: "",
-    title: "",
     city: "",
   });
   const [error, setError] = useState("");
@@ -51,7 +50,6 @@ export default function Register() {
           password: formData.password,
           name: formData.name,
           lastname: formData.lastname,
-          title: formData.title,
           city: formData.city,
         }),
       });
@@ -121,16 +119,12 @@ export default function Register() {
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="title">Title</label>
-            <input
-              id="title"
-              type="text"
-              name="title"
-              placeholder="Manager"
-              value={formData.title}
-              onChange={handleChange}
-            />
+          <div className="form-group info-box">
+            <p>
+              <i className="fas fa-info-circle"></i>
+              You will be assigned the <strong>User</strong> role by default. An
+              administrator can change your role later.
+            </p>
           </div>
 
           <div className="form-group">

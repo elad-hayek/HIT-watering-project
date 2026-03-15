@@ -5,19 +5,27 @@ export default function User({ user, setUser }) {
   const [formData, setFormData] = useState({
     name: "",
     lastname: "",
-    title: "",
     city: "",
   });
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Get role display name
+  const getRoleDisplayName = () => {
+    const roles = {
+      user: "User",
+      area_manager: "Area Manager",
+      admin: "Administrator",
+    };
+    return roles[user?.role] || user?.role || "Unknown";
+  };
+
   useEffect(() => {
     if (user) {
       setFormData({
         name: user.name || "",
         lastname: user.lastname || "",
-        title: user.title || "",
         city: user.city || "",
       });
       setLoading(false);
@@ -74,7 +82,10 @@ export default function User({ user, setUser }) {
               {user.name} {user.lastname}
             </h2>
             <p className="user-id">ID: {user.username}</p>
-            <p className="user-title">{user.title}</p>
+            <p className="user-role">
+              Role: <strong>{getRoleDisplayName()}</strong>
+            </p>
+            {user.title && <p className="user-title">{user.title}</p>}
           </div>
         </div>
 
@@ -108,13 +119,13 @@ export default function User({ user, setUser }) {
           </div>
 
           <div className="form-group">
-            <label>Title/Position</label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-            />
+            <label>Role (Read-only)</label>
+            <div className="role-readonly">
+              <span className="role-badge">{getRoleDisplayName()}</span>
+              <p className="role-note">
+                Your role can only be changed by an administrator.
+              </p>
+            </div>
           </div>
 
           <div className="form-group">

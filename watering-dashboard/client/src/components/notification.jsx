@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./notification.css";
 
-export default function Notification() {
+export default function Notification({ user }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -10,11 +10,17 @@ export default function Notification() {
     // Refresh logs every 30 seconds
     const interval = setInterval(loadLogs, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const loadLogs = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/audit?limit=50");
+      const res = await fetch("http://localhost:3000/api/audit?limit=50", {
+        headers: {
+          "x-user-id": user.id,
+          "x-user-role": user.role,
+          "x-user": user.username,
+        },
+      });
       const data = await res.json();
       setLogs(data.logs || []);
       setLoading(false);

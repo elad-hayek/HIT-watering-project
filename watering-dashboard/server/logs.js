@@ -1,11 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const db = require("./Database");
-
-// Check if user is admin
-function isAdmin(title, username) {
-  return title === "Administrator" || username === "340969674";
-}
+const { ROLES, canViewActivity } = require("./rbac");
+const { requireAuth, requireRole } = require("./rbacMiddleware");
 
 // Write audit log entry
 async function writeAudit(data) {
@@ -39,125 +36,176 @@ async function writeAudit(data) {
   });
 }
 
-// GET /api/audit/logs - Get audit logs with filtering and pagination
-router.get("/logs", (req, res) => {
-  const username = req.headers["x-user"];
+// GET /api/audit/logs - Get audit logs based on user role
+// Only Area Managers and Admins can view activity
+// Regular users cannot view activity
+router.get("/logs", requireAuth, (req, res) => {
+  const userId = req.userId;
+  const userRole = req.userRole;
 
-  // Check if user is admin by checking username in database
-  const userSql = `SELECT title FROM users WHERE username = ? LIMIT 1`;
-  db.query(userSql, [username], (err, userResults) => {
+  // Check if user has permission to view activity
+  if (!canViewActivity(userRole)) {
+    return res
+      .status(403)
+      .json({ error: "You do not have permission to view activity" });
+  }
+
+  const limit = parseInt(req.query.limit) || 30;
+  const offset = parseInt(req.query.offset) || 0;
+  const filterUser = req.query.user ? req.query.user.trim() : "";
+  const filterAction = req.query.action ? req.query.action.trim() : "";
+
+  let whereConditions = [];
+  let params = [];
+
+  if (userRole === ROLES.AREA_MANAGER) {
+    // Area managers see activity for their areas and related entities
+    whereConditions.push(`
+      (entity_type = 'area' AND entity_id IN (
+        SELECT area_id FROM user_area_mapping WHERE user_id = ?
+      ))
+      OR
+      (entity_type = 'plant' AND entity_id IN (
+        SELECT p.id FROM plants p
+        INNER JOIN user_area_mapping uam ON p.area_id = uam.area_id
+        WHERE uam.user_id = ?
+      ))
+      OR
+      (entity_type = 'user_area' AND details LIKE ?)
+    `);
+    params.push(
+      userId,
+      userId,
+      JSON.stringify({ areaId: "%" }).substring(0, -3) + "%",
+    );
+  }
+  // Admin sees all activity - no additional WHERE clause needed
+
+  if (filterUser) {
+    whereConditions.push("actor = ?");
+    params.push(filterUser);
+  }
+
+  if (filterAction) {
+    whereConditions.push("action = ?");
+    params.push(filterAction);
+  }
+
+  const whereClause =
+    whereConditions.length > 0 ? "WHERE " + whereConditions.join(" AND ") : "";
+
+  // Get total count
+  const countSql = `SELECT COUNT(*) as total FROM audit_log ${whereClause}`;
+  db.query(countSql, params, (err, countResults) => {
     if (err) {
-      console.error("❌ Get user error:", err);
+      console.error("❌ Get audit count error:", err);
       return res.status(500).json({ error: "Database error" });
     }
 
-    if (userResults.length === 0 || !isAdmin(userResults[0].title, username)) {
-      return res.status(403).json({ error: "Access denied. Admin only." });
-    }
+    const total = countResults[0].total;
 
-    const limit = parseInt(req.query.limit) || 30;
-    const offset = parseInt(req.query.offset) || 0;
-    const filterUser = req.query.user ? req.query.user.trim() : "";
-    const filterAction = req.query.action ? req.query.action.trim() : "";
-
-    let whereConditions = [];
-    let params = [];
-
-    if (filterUser) {
-      whereConditions.push("actor = ?");
-      params.push(filterUser);
-    }
-
-    if (filterAction) {
-      whereConditions.push("action = ?");
-      params.push(filterAction);
-    }
-
-    const whereClause =
-      whereConditions.length > 0
-        ? "WHERE " + whereConditions.join(" AND ")
-        : "";
-
-    // Get total count
-    const countSql = `SELECT COUNT(*) as total FROM audit_log ${whereClause}`;
-    db.query(countSql, params, (err, countResults) => {
-      if (err) {
-        console.error("❌ Get audit count error:", err);
-        return res.status(500).json({ error: "Database error" });
-      }
-
-      const total = countResults[0].total;
-
-      // Get paginated logs
-      const sql = `
+    // Get paginated logs
+    const sql = `
           SELECT * FROM audit_log 
           ${whereClause}
           ORDER BY created_at DESC 
           LIMIT ? OFFSET ?
       `;
 
-      db.query(sql, [...params, limit, offset], (err, results) => {
-        if (err) {
-          console.error("❌ Get audit logs error:", err);
-          return res.status(500).json({ error: "Database error" });
-        }
+    db.query(sql, [...params, limit, offset], (err, results) => {
+      if (err) {
+        console.error("❌ Get audit logs error:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
 
-        res.json({
-          logs: results,
-          total: total,
-          limit,
-          offset,
-        });
+      res.json({
+        logs: results,
+        total: total,
+        limit,
+        offset,
       });
     });
   });
 });
 
 // GET /api/audit/filters - Get available users and actions for filtering
-router.get("/filters", (req, res) => {
-  const username = req.headers["x-user"];
+// Only Area Managers and Admins can view activity
+router.get("/filters", requireAuth, (req, res) => {
+  const userId = req.userId;
+  const userRole = req.userRole;
 
-  // Check if user is admin by checking username in database
-  const userSql = `SELECT title FROM users WHERE username = ? LIMIT 1`;
-  db.query(userSql, [username], (err, userResults) => {
+  // Check if user has permission to view activity
+  if (!canViewActivity(userRole)) {
+    return res
+      .status(403)
+      .json({ error: "You do not have permission to view activity" });
+  }
+
+  let usersSql, actionsSql;
+
+  if (userRole === ROLES.AREA_MANAGER) {
+    // Area managers see actors and actions from their areas only
+    usersSql = `SELECT DISTINCT al.actor FROM audit_log al
+                WHERE (
+                  al.entity_type = 'area' AND al.entity_id IN (
+                    SELECT area_id FROM user_area_mapping WHERE user_id = ?
+                  )
+                )
+                OR (
+                  al.entity_type = 'plant' AND al.entity_id IN (
+                    SELECT p.id FROM plants p
+                    INNER JOIN user_area_mapping uam ON p.area_id = uam.area_id
+                    WHERE uam.user_id = ?
+                  )
+                )
+                AND al.actor IS NOT NULL ORDER BY al.actor ASC`;
+
+    actionsSql = `SELECT DISTINCT al.action FROM audit_log al
+                 WHERE (
+                   al.entity_type = 'area' AND al.entity_id IN (
+                     SELECT area_id FROM user_area_mapping WHERE user_id = ?
+                   )
+                 )
+                 OR (
+                   al.entity_type = 'plant' AND al.entity_id IN (
+                     SELECT p.id FROM plants p
+                     INNER JOIN user_area_mapping uam ON p.area_id = uam.area_id
+                     WHERE uam.user_id = ?
+                   )
+                 )
+                 AND al.action IS NOT NULL ORDER BY al.action ASC`;
+  } else {
+    // Admin sees all
+    usersSql = `SELECT DISTINCT actor FROM audit_log WHERE actor IS NOT NULL ORDER BY actor ASC`;
+    actionsSql = `SELECT DISTINCT action FROM audit_log WHERE action IS NOT NULL ORDER BY action ASC`;
+  }
+
+  const userParams = userRole === ROLES.AREA_MANAGER ? [userId, userId] : [];
+  const actionParams = userRole === ROLES.AREA_MANAGER ? [userId, userId] : [];
+
+  db.query(usersSql, userParams, (err, usersResults) => {
     if (err) {
-      console.error("❌ Get user error:", err);
+      console.error("❌ Get users error:", err);
       return res.status(500).json({ error: "Database error" });
     }
 
-    if (userResults.length === 0 || !isAdmin(userResults[0].title, username)) {
-      return res.status(403).json({ error: "Access denied. Admin only." });
-    }
-
-    // Get unique actors (users)
-    const usersSql = `SELECT DISTINCT actor FROM audit_log WHERE actor IS NOT NULL ORDER BY actor ASC`;
-
-    // Get unique actions
-    const actionsSql = `SELECT DISTINCT action FROM audit_log WHERE action IS NOT NULL ORDER BY action ASC`;
-
-    db.query(usersSql, (err, usersResults) => {
-      if (err) {
-        console.error("❌ Get users error:", err);
+    db.query(actionsSql, actionParams, (err2, actionsResults) => {
+      if (err2) {
+        console.error("❌ Get actions error:", err2);
         return res.status(500).json({ error: "Database error" });
       }
 
-      db.query(actionsSql, (err2, actionsResults) => {
-        if (err2) {
-          console.error("❌ Get actions error:", err2);
-          return res.status(500).json({ error: "Database error" });
-        }
+      const users = usersResults.map((row) => row.actor);
+      const actions = actionsResults.map((row) => row.action);
 
-        const users = usersResults.map((row) => row.actor);
-        const actions = actionsResults.map((row) => row.action);
-
-        res.json({ users, actions });
-      });
+      res.json({ users, actions });
     });
   });
 });
 
-// GET /api/audit - Get audit logs (old endpoint for backwards compatibility)
-router.get("/", (req, res) => {
+// GET /api/audit - Get audit logs (deprecated, use /logs instead)
+// Only Admins can access this endpoint
+router.get("/", requireRole(ROLES.ADMIN), (req, res) => {
   const limit = parseInt(req.query.limit) || 100;
   const offset = parseInt(req.query.offset) || 0;
 
@@ -192,25 +240,64 @@ router.get("/", (req, res) => {
 });
 
 // GET /api/audit/entity/:type/:id - Get logs for specific entity
-router.get("/entity/:type/:id", (req, res) => {
+// Check access based on role
+router.get("/entity/:type/:id", requireAuth, (req, res) => {
   const { type, id } = req.params;
+  const userId = req.userId;
+  const userRole = req.userRole;
   const limit = parseInt(req.query.limit) || 50;
 
-  const sql = `
+  // For area managers, check if they have access
+  if (userRole === ROLES.AREA_MANAGER) {
+    if (type === "area") {
+      // Check if they manage this area
+      const checkSql = `SELECT id FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
+      db.query(checkSql, [userId, id], (err, results) => {
+        if (err || results.length === 0) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+        fetchLogs();
+      });
+    } else if (type === "plant") {
+      // Check if they manage the plant's area
+      const checkSql = `SELECT p.id FROM plants p
+                       INNER JOIN user_area_mapping uam ON p.area_id = uam.area_id
+                       WHERE p.id = ? AND uam.user_id = ? LIMIT 1`;
+      db.query(checkSql, [id, userId], (err, results) => {
+        if (err || results.length === 0) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+        fetchLogs();
+      });
+    } else {
+      return res.status(403).json({ error: "Access denied" });
+    }
+  } else if (userRole === ROLES.USER) {
+    return res
+      .status(403)
+      .json({ error: "You do not have permission to view activity" });
+  } else {
+    // Admin - no restrictions
+    fetchLogs();
+  }
+
+  function fetchLogs() {
+    const sql = `
         SELECT * FROM audit_log 
         WHERE entity_type = ? AND entity_id = ?
         ORDER BY created_at DESC 
         LIMIT ?
     `;
 
-  db.query(sql, [type, id, limit], (err, results) => {
-    if (err) {
-      console.error("❌ Get entity audit logs error:", err);
-      return res.status(500).json({ error: "Database error" });
-    }
+    db.query(sql, [type, id, limit], (err, results) => {
+      if (err) {
+        console.error("❌ Get entity audit logs error:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
 
-    res.json({ logs: results });
-  });
+      res.json({ logs: results });
+    });
+  }
 });
 
 module.exports = { router, writeAudit };

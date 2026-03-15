@@ -26,7 +26,13 @@ export default function HomeAfterLogin({ user }) {
 
   const loadAreas = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/areas");
+      const res = await fetch("http://localhost:3000/api/areas", {
+        headers: {
+          "x-user-id": user.id,
+          "x-user-role": user.role,
+          "x-user": user.username,
+        },
+      });
       const data = await res.json();
       setAreas(data.areas || []);
       setLoading(false);
@@ -40,6 +46,13 @@ export default function HomeAfterLogin({ user }) {
     try {
       const res = await fetch(
         `http://localhost:3000/api/plants?areaId=${areaId}`,
+        {
+          headers: {
+            "x-user-id": user.id,
+            "x-user-role": user.role,
+            "x-user": user.username,
+          },
+        },
       );
       const data = await res.json();
       setPlants(data.plants || []);
@@ -80,7 +93,11 @@ export default function HomeAfterLogin({ user }) {
       try {
         const res = await fetch(`http://localhost:3000/api/areas/${areaId}`, {
           method: "DELETE",
-          headers: { "x-user": user.username },
+          headers: {
+            "x-user-id": user.id,
+            "x-user-role": user.role,
+            "x-user": user.username,
+          },
         });
         if (res.ok) {
           await loadAreas();
@@ -117,7 +134,11 @@ export default function HomeAfterLogin({ user }) {
       try {
         const res = await fetch(`http://localhost:3000/api/plants/${plantId}`, {
           method: "DELETE",
-          headers: { "x-user": user.username },
+          headers: {
+            "x-user-id": user.id,
+            "x-user-role": user.role,
+            "x-user": user.username,
+          },
         });
         if (res.ok && selectedArea) {
           loadPlants(selectedArea.id);
