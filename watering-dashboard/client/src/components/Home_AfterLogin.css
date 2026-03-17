@@ -582,6 +582,15 @@
   background: #e68900;
 }
 
+.area-permission.permission-area_manager {
+  background: #9c27b0;
+  color: white;
+}
+
+[data-theme="dark"] .area-permission.permission-area_manager {
+  background: #7b1fa2;
+}
+
 .area-info {
   flex: 1;
   min-width: 0;
