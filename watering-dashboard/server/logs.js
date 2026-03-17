@@ -58,28 +58,7 @@ router.get("/logs", requireAuth, (req, res) => {
   let whereConditions = [];
   let params = [];
 
-  if (userRole === ROLES.AREA_MANAGER) {
-    // Area managers see activity for their areas and related entities
-    whereConditions.push(`
-      (entity_type = 'area' AND entity_id IN (
-        SELECT area_id FROM user_area_mapping WHERE user_id = ?
-      ))
-      OR
-      (entity_type = 'plant' AND entity_id IN (
-        SELECT p.id FROM plants p
-        INNER JOIN user_area_mapping uam ON p.area_id = uam.area_id
-        WHERE uam.user_id = ?
-      ))
-      OR
-      (entity_type = 'user_area' AND details LIKE ?)
-    `);
-    params.push(
-      userId,
-      userId,
-      JSON.stringify({ areaId: "%" }).substring(0, -3) + "%",
-    );
-  }
-  // Admin sees all activity - no additional WHERE clause needed
+  // Admins see all activity - no additional WHERE clause needed
 
   if (filterUser) {
     whereConditions.push("actor = ?");
@@ -143,53 +122,17 @@ router.get("/filters", requireAuth, (req, res) => {
 
   let usersSql, actionsSql;
 
-  if (userRole === ROLES.AREA_MANAGER) {
-    // Area managers see actors and actions from their areas only
-    usersSql = `SELECT DISTINCT al.actor FROM audit_log al
-                WHERE (
-                  al.entity_type = 'area' AND al.entity_id IN (
-                    SELECT area_id FROM user_area_mapping WHERE user_id = ?
-                  )
-                )
-                OR (
-                  al.entity_type = 'plant' AND al.entity_id IN (
-                    SELECT p.id FROM plants p
-                    INNER JOIN user_area_mapping uam ON p.area_id = uam.area_id
-                    WHERE uam.user_id = ?
-                  )
-                )
-                AND al.actor IS NOT NULL ORDER BY al.actor ASC`;
+  // Admin sees all
+  usersSql = `SELECT DISTINCT actor FROM audit_log WHERE actor IS NOT NULL ORDER BY actor ASC`;
+  actionsSql = `SELECT DISTINCT action FROM audit_log WHERE action IS NOT NULL ORDER BY action ASC`;
 
-    actionsSql = `SELECT DISTINCT al.action FROM audit_log al
-                 WHERE (
-                   al.entity_type = 'area' AND al.entity_id IN (
-                     SELECT area_id FROM user_area_mapping WHERE user_id = ?
-                   )
-                 )
-                 OR (
-                   al.entity_type = 'plant' AND al.entity_id IN (
-                     SELECT p.id FROM plants p
-                     INNER JOIN user_area_mapping uam ON p.area_id = uam.area_id
-                     WHERE uam.user_id = ?
-                   )
-                 )
-                 AND al.action IS NOT NULL ORDER BY al.action ASC`;
-  } else {
-    // Admin sees all
-    usersSql = `SELECT DISTINCT actor FROM audit_log WHERE actor IS NOT NULL ORDER BY actor ASC`;
-    actionsSql = `SELECT DISTINCT action FROM audit_log WHERE action IS NOT NULL ORDER BY action ASC`;
-  }
-
-  const userParams = userRole === ROLES.AREA_MANAGER ? [userId, userId] : [];
-  const actionParams = userRole === ROLES.AREA_MANAGER ? [userId, userId] : [];
-
-  db.query(usersSql, userParams, (err, usersResults) => {
+  db.query(usersSql, [], (err, usersResults) => {
     if (err) {
       console.error("❌ Get users error:", err);
       return res.status(500).json({ error: "Database error" });
     }
 
-    db.query(actionsSql, actionParams, (err2, actionsResults) => {
+    db.query(actionsSql, [], (err2, actionsResults) => {
       if (err2) {
         console.error("❌ Get actions error:", err2);
         return res.status(500).json({ error: "Database error" });
@@ -247,38 +190,32 @@ router.get("/entity/:type/:id", requireAuth, (req, res) => {
   const userRole = req.userRole;
   const limit = parseInt(req.query.limit) || 50;
 
-  // For area managers, check if they have access
-  if (userRole === ROLES.AREA_MANAGER) {
-    if (type === "area") {
-      // Check if they manage this area
-      const checkSql = `SELECT id FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
-      db.query(checkSql, [userId, id], (err, results) => {
-        if (err || results.length === 0) {
-          return res.status(403).json({ error: "Access denied" });
-        }
-        fetchLogs();
-      });
-    } else if (type === "plant") {
-      // Check if they manage the plant's area
-      const checkSql = `SELECT p.id FROM plants p
-                       INNER JOIN user_area_mapping uam ON p.area_id = uam.area_id
-                       WHERE p.id = ? AND uam.user_id = ? LIMIT 1`;
-      db.query(checkSql, [id, userId], (err, results) => {
-        if (err || results.length === 0) {
-          return res.status(403).json({ error: "Access denied" });
-        }
-        fetchLogs();
-      });
-    } else {
-      return res.status(403).json({ error: "Access denied" });
-    }
-  } else if (userRole === ROLES.USER) {
+  // Only admins can view entity logs
+  if (userRole !== ROLES.ADMIN) {
     return res
       .status(403)
       .json({ error: "You do not have permission to view activity" });
+  }
+
+  // Verify the entity exists
+  if (type === "area") {
+    const checkSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
+    db.query(checkSql, [id], (err, results) => {
+      if (err || results.length === 0) {
+        return res.status(404).json({ error: "Entity not found" });
+      }
+      fetchLogs();
+    });
+  } else if (type === "plant") {
+    const checkSql = `SELECT id FROM plants WHERE id = ? LIMIT 1`;
+    db.query(checkSql, [id], (err, results) => {
+      if (err || results.length === 0) {
+        return res.status(404).json({ error: "Entity not found" });
+      }
+      fetchLogs();
+    });
   } else {
-    // Admin - no restrictions
-    fetchLogs();
+    return res.status(400).json({ error: "Invalid entity type" });
   }
 
   function fetchLogs() {

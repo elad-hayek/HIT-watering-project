@@ -6,13 +6,11 @@
 // Role hierarchy levels (higher number = more privilege)
 const ROLE_HIERARCHY = {
   user: 1,
-  area_manager: 2,
-  admin: 3,
+  admin: 2,
 };
 
 const ROLES = {
   USER: "user",
-  AREA_MANAGER: "area_manager",
   ADMIN: "admin",
 };
 
@@ -31,33 +29,20 @@ function hasRolePrivilege(userRole, requiredRole) {
 /**
  * Check if a user can assign a role to another user
  * Role assignment rules:
- * - Admin can assign any role
- * - Area Manager can only assign roles below them (user role)
+ * - Admin can assign user or admin role
  * - User cannot assign any role
  * @param {string} assignerRole - The role of the user doing the assignment
  * @param {string} targetRole - The role being assigned
  * @returns {boolean}
  */
 function canAssignRole(assignerRole, targetRole) {
-  const assignerLevel = ROLE_HIERARCHY[assignerRole] || 0;
-  const targetLevel = ROLE_HIERARCHY[targetRole] || 0;
-
-  // Can't assign a role higher than or equal to own role
-  if (targetLevel >= assignerLevel) {
+  // Only admin can assign roles
+  if (assignerRole !== ROLES.ADMIN) {
     return false;
   }
 
-  // Admin can assign any lower role
-  if (assignerRole === ROLES.ADMIN) {
-    return true;
-  }
-
-  // Area Manager can only assign User role
-  if (assignerRole === ROLES.AREA_MANAGER && targetRole === ROLES.USER) {
-    return true;
-  }
-
-  return false;
+  // Admin can assign user or admin roles
+  return targetRole === ROLES.USER || targetRole === ROLES.ADMIN;
 }
 
 /**
@@ -67,10 +52,7 @@ function canAssignRole(assignerRole, targetRole) {
  */
 function getAssignableRoles(userRole) {
   if (userRole === ROLES.ADMIN) {
-    return [ROLES.USER, ROLES.AREA_MANAGER, ROLES.ADMIN];
-  }
-  if (userRole === ROLES.AREA_MANAGER) {
-    return [ROLES.USER];
+    return [ROLES.USER, ROLES.ADMIN];
   }
   return [];
 }
@@ -81,7 +63,7 @@ function getAssignableRoles(userRole) {
  * @returns {boolean}
  */
 function canViewActivity(role) {
-  return role === ROLES.AREA_MANAGER || role === ROLES.ADMIN;
+  return role === ROLES.ADMIN;
 }
 
 /**
@@ -90,7 +72,7 @@ function canViewActivity(role) {
  * @returns {boolean}
  */
 function canManageAreas(role) {
-  return role === ROLES.AREA_MANAGER || role === ROLES.ADMIN;
+  return role === ROLES.ADMIN;
 }
 
 /**
@@ -119,7 +101,6 @@ function canManageUsers(role) {
 function getRoleDisplayName(role) {
   const displayNames = {
     user: "User",
-    area_manager: "Area Manager",
     admin: "Administrator",
   };
   return displayNames[role] || role;
@@ -148,27 +129,23 @@ function hasAreaUpdatePermission(userRole, areaPermission) {
  * Check if a user has read permission on an area
  * Rules:
  * - Admin: always has read permission
- * - Area Manager/User: if assigned to area, they have read permission
+ * - User: if assigned to area, they have read permission
  * @param {string} userRole - User's role
  * @returns {boolean} - True if user can read the area
  */
 function hasAreaReadPermission(userRole) {
   // Anyone assigned to an area can read it
-  return (
-    userRole === ROLES.ADMIN ||
-    userRole === ROLES.AREA_MANAGER ||
-    userRole === ROLES.USER
-  );
+  return userRole === ROLES.ADMIN || userRole === ROLES.USER;
 }
 
 /**
  * Check if a user can delete an area
- * Only admins and area managers can delete areas
+ * Only admins can delete areas
  * @param {string} userRole - User's role
  * @returns {boolean}
  */
 function canDeleteArea(userRole) {
-  return userRole === ROLES.ADMIN || userRole === ROLES.AREA_MANAGER;
+  return userRole === ROLES.ADMIN;
 }
 
 module.exports = {

@@ -29,7 +29,6 @@ export function getPermissionDisplay(permission) {
   const displayMap = {
     read: "📖 Read Only",
     update: "✏️ Editor",
-    area_manager: "👨‍💼 Area Manager",
     admin: "🔑 Admin",
   };
   return displayMap[permission] || "Unknown";
@@ -46,8 +45,6 @@ export function getPermissionBadgeClass(permission) {
       return "permission-read";
     case "update":
       return "permission-update";
-    case "area_manager":
-      return "permission-area-manager";
     case "admin":
       return "permission-admin";
     default:
@@ -57,26 +54,26 @@ export function getPermissionBadgeClass(permission) {
 
 /**
  * Check if a user can manage area users
- * Only global admins and users with area_manager permission for the specific area can manage users
+ * Only global admins can manage users
  * @param {string} globalRole - User's global role
  * @param {string} areaPermission - User's permission level for that specific area
  * @returns {boolean}
  */
 export function canManageAreaUsers(globalRole, areaPermission) {
-  // Only global admin or users with area_manager permission for this specific area
-  return globalRole === "admin" || areaPermission === "area_manager";
+  // Only global admin can manage users
+  return globalRole === "admin";
 }
 
 /**
  * Check if a user can delete an area
- * Only admins and users with area_manager permission for the specific area can delete
+ * Only admins can delete
  * @param {string} globalRole - User's global role
  * @param {string} areaPermission - User's permission level for that specific area
  * @returns {boolean}
  */
 export function canDeleteArea(globalRole, areaPermission) {
-  // Only global admin or users with area_manager permission for this specific area
-  return globalRole === "admin" || areaPermission === "area_manager";
+  // Only global admin can delete areas
+  return globalRole === "admin";
 }
 
 export default {

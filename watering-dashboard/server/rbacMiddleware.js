@@ -60,16 +60,8 @@ function requireAdmin(req, res, next) {
   requireRole(ROLES.ADMIN)(req, res, next);
 }
 
-/**
- * Middleware to require area manager or admin role
- */
-function requireAreaManager(req, res, next) {
-  requireRole(ROLES.AREA_MANAGER)(req, res, next);
-}
-
 module.exports = {
   requireAuth,
   requireRole,
   requireAdmin,
-  requireAreaManager,
 };

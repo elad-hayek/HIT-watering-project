@@ -5,7 +5,7 @@ export default function UserManagement({ user }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [deleting, setDeleting] = useState(null);
+  const [togglingRole, setTogglingRole] = useState(null);
   const [message, setMessage] = useState("");
   const [hasAttemptedSearch, setHasAttemptedSearch] = useState(false);
 
@@ -50,56 +50,66 @@ export default function UserManagement({ user }) {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
+  const handleToggleRole = async (userId) => {
     const currentUser = users.find((u) => u.id === userId);
     if (!currentUser) return;
 
-    // Check if the user is trying to delete themselves
+    // Check if the user is trying to change their own role
     if (userId === user.id) {
-      setMessage("You cannot delete your own account");
+      setMessage("You cannot change your own role");
       return;
     }
 
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${currentUser.name} ${currentUser.lastname}?`,
-      )
-    ) {
+    const newRole = currentUser.role === "admin" ? "user" : "admin";
+    const confirmMessage =
+      newRole === "admin"
+        ? `Make ${currentUser.name} ${currentUser.lastname} an administrator?`
+        : `Remove administrator status from ${currentUser.name} ${currentUser.lastname}?`;
+
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
-    setDeleting(userId);
+    setTogglingRole(userId);
     setMessage("");
 
     try {
       const response = await fetch(
-        `http://localhost:3000/api/users/${userId}`,
+        `http://localhost:3000/api/users/${userId}/role`,
         {
-          method: "DELETE",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             "x-user-id": user.id,
             "x-user-role": user.role,
             "x-user": user.username,
           },
+          body: JSON.stringify({ newRole }),
         },
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to delete user");
+        throw new Error(error.error || "Failed to update user role");
       }
 
-      // Remove the user from the list
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      // Update the user in the list
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
+      );
+
+      const actionText =
+        newRole === "admin"
+          ? "promoted to administrator"
+          : "demoted to regular user";
       setMessage(
-        `User ${currentUser.name} ${currentUser.lastname} has been deleted`,
+        `User ${currentUser.name} ${currentUser.lastname} has been ${actionText}`,
       );
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
-      setMessage("Error deleting user: " + err.message);
+      setMessage("Error updating user role: " + err.message);
     } finally {
-      setDeleting(null);
+      setTogglingRole(null);
     }
   };
 
@@ -107,8 +117,6 @@ export default function UserManagement({ user }) {
     switch (role) {
       case "admin":
         return "#e74c3c";
-      case "area_manager":
-        return "#f39c12";
       case "user":
         return "#3498db";
       default:
@@ -119,7 +127,6 @@ export default function UserManagement({ user }) {
   const getRoleLabel = (role) => {
     const labels = {
       user: "User",
-      area_manager: "Area Manager",
       admin: "Administrator",
     };
     return labels[role] || role;
@@ -142,7 +149,7 @@ export default function UserManagement({ user }) {
     <div className="user-management-container">
       <div className="user-management-header">
         <h2>👥 User Management</h2>
-        <p>Manage users in the system (view and delete only)</p>
+        <p>Manage users in the system (assign or remove administrator role)</p>
       </div>
 
       <form onSubmit={handleSearch} className="search-form">
@@ -207,18 +214,26 @@ export default function UserManagement({ user }) {
                 <div className="col-actions">
                   {u.id !== user.id ? (
                     <button
-                      onClick={() => handleDeleteUser(u.id)}
-                      disabled={deleting === u.id}
-                      className="btn-delete"
-                      title="Delete user"
+                      onClick={() => handleToggleRole(u.id)}
+                      disabled={togglingRole === u.id}
+                      className={`btn-role-toggle ${u.role === "admin" ? "btn-remove-admin" : "btn-make-admin"}`}
+                      title={
+                        u.role === "admin"
+                          ? "Remove administrator"
+                          : "Make administrator"
+                      }
                     >
-                      {deleting === u.id ? (
+                      {togglingRole === u.id ? (
                         <>
-                          <span className="spinner"></span> Deleting...
+                          <span className="spinner"></span> Updating...
+                        </>
+                      ) : u.role === "admin" ? (
+                        <>
+                          <i className="fas fa-shield-alt"></i> Remove Admin
                         </>
                       ) : (
                         <>
-                          <i className="fas fa-trash"></i> Delete
+                          <i className="fas fa-crown"></i> Make Admin
                         </>
                       )}
                     </button>

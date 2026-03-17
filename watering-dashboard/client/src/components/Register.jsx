@@ -119,14 +119,6 @@ export default function Register() {
             />
           </div>
 
-          <div className="form-group info-box">
-            <p>
-              <i className="fas fa-info-circle"></i>
-              You will be assigned the <strong>User</strong> role by default. An
-              administrator can change your role later.
-            </p>
-          </div>
-
           <div className="form-group">
             <label htmlFor="city">City</label>
             <input

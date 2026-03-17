@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import "./AreaUsersModal.css";
-import { canManageAreaUsers } from "../utils/permissions";
 
 export default function AreaUsersModal({ area, onClose, user }) {
   const [areaUsers, setAreaUsers] = useState([]);
@@ -203,16 +202,15 @@ export default function AreaUsersModal({ area, onClose, user }) {
     }
   };
 
-  // Check if current user can manage area users (admin or area_manager only)
+  // Check if current user can manage area users (admin only)
   const canManageCurrentArea = () => {
-    return canManageAreaUsers(user.role, area.permission);
+    return user.role === "admin";
   };
 
   const getPermissionDisplay = (permission) => {
     const map = {
       read: "📖 Read Only",
       update: "✏️ Editor",
-      area_manager: "👨‍💼 Area Manager",
       admin: "🔑 Admin",
     };
     return map[permission] || permission;
@@ -222,8 +220,6 @@ export default function AreaUsersModal({ area, onClose, user }) {
     switch (permission) {
       case "admin":
         return "#c0392b"; // Red for Admin
-      case "area_manager":
-        return "#e67e22"; // Orange for Area Manager
       case "update":
         return "#27ae60"; // Green for Editor
       case "read":
@@ -326,9 +322,6 @@ export default function AreaUsersModal({ area, onClose, user }) {
                             >
                               <option value="read">📖 Read Only</option>
                               <option value="update">✏️ Editor</option>
-                              <option value="area_manager">
-                                👨‍💼 Area Manager
-                              </option>
                             </select>
                           </div>
                           <small className="permission-note">
@@ -436,9 +429,6 @@ export default function AreaUsersModal({ area, onClose, user }) {
                             >
                               <option value="read">📖 Read Only</option>
                               <option value="update">✏️ Editor</option>
-                              <option value="area_manager">
-                                👨‍💼 Area Manager
-                              </option>
                             </select>
                           </div>
                         )}

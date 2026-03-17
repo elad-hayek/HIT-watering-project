@@ -285,12 +285,12 @@ router.put("/:id/role", requireAuth, async (req, res) => {
   );
 });
 
-// POST /api/users/:userId/areas/:areaId - Assign area to user (Area Manager)
-// This is for area managers to assign areas to users
+// POST /api/users/:userId/areas/:areaId - Assign area to user (Admin only)
+// This is for admins to assign areas to users
 // Request body: { permission: 'read' | 'update' }
 router.post(
   "/:userId/areas/:areaId",
-  requireRole(ROLES.AREA_MANAGER),
+  requireRole(ROLES.ADMIN),
   async (req, res) => {
     const { userId, areaId } = req.params;
     const { permission } = req.body;
@@ -322,7 +322,8 @@ router.post(
 
         const targetRole = rows[0].role;
 
-        // Area managers can only assign to users with lower role
+        // Admin can assign areas to any user
+        // The canAssignRole check ensures permission validation
         if (!canAssignRole(managerRole, targetRole)) {
           return res.status(403).json({
             error: "You cannot assign areas to users of equal or higher role",
@@ -372,10 +373,10 @@ router.post(
   },
 );
 
-// DELETE /api/users/:userId/areas/:areaId - Remove area from user (Area Manager)
+// DELETE /api/users/:userId/areas/:areaId - Remove area from user (Admin only)
 router.delete(
   "/:userId/areas/:areaId",
-  requireRole(ROLES.AREA_MANAGER),
+  requireRole(ROLES.ADMIN),
   async (req, res) => {
     const { userId, areaId } = req.params;
     const actor = req.headers["x-user"] || "unknown";

@@ -48,11 +48,6 @@ export default function App() {
     );
   }
 
-  // Helper to check if user has permission to view activity
-  const canViewActivity = () => {
-    return user && (user.role === "area_manager" || user.role === "admin");
-  };
-
   // Helper to check if user is admin
   const isAdmin = () => {
     return user && user.role === "admin";
@@ -74,7 +69,7 @@ export default function App() {
         <Route
           path="/activity"
           element={
-            canViewActivity() ? (
+            isAdmin() ? (
               <Activity user={user} />
             ) : user ? (
               <Navigate to="/" />

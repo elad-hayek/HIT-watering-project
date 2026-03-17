@@ -252,26 +252,14 @@ router.delete("/:id", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only admins and area managers with the area can delete
+  // Only admins can delete
   if (userRole === ROLES.ADMIN) {
     // Admin can delete any area
     performDelete();
-  } else if (userRole === ROLES.AREA_MANAGER) {
-    // Area Manager can only delete their own areas
-    const checkAccessSql = `SELECT id FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
-    db.query(checkAccessSql, [userId, id], (checkErr, checkResults) => {
-      if (checkErr || checkResults.length === 0) {
-        return res
-          .status(403)
-          .json({ error: "You do not have access to this area" });
-      }
-      performDelete();
-    });
   } else {
-    // Users cannot delete areas, even with update permission
-    return res
-      .status(403)
-      .json({ error: "Only Area Managers or Administrators can delete areas" });
+    return res.status(403).json({
+      error: "You do not have permission to delete areas",
+    });
   }
 
   function performDelete() {
@@ -385,7 +373,7 @@ router.post(
 );
 
 // GET /api/areas/:id/users - Get all users assigned to an area
-// Only area managers and admins can view this
+// Only admins can view this
 router.get("/:id/users", requireAuth, (req, res) => {
   const { id } = req.params;
   const userId = req.userId;
@@ -393,29 +381,17 @@ router.get("/:id/users", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Check if user has access to manage this area
-  let checkAccessSql;
-
-  if (userRole === ROLES.ADMIN) {
-    // Admins can view users for any area
-    checkAccessSql = `SELECT 1 FROM areas WHERE id = ? LIMIT 1`;
-  } else if (userRole === ROLES.AREA_MANAGER) {
-    // Area managers can view users for areas where they have update, area_manager, or admin permission
-    checkAccessSql = `
-      SELECT uam.id FROM user_area_mapping uam
-      WHERE uam.user_id = ? AND uam.area_id = ? 
-      AND uam.permission IN ('update', 'area_manager', 'admin')
-      LIMIT 1
-    `;
-  } else {
+  // Only admins can view and manage area users
+  if (userRole !== ROLES.ADMIN) {
     return res.status(403).json({
       error: "You do not have permission to manage this area",
     });
   }
 
-  const params = userRole === ROLES.ADMIN ? [id] : [userId, id];
+  // Verify the area exists
+  const checkAccessSql = `SELECT 1 FROM areas WHERE id = ? LIMIT 1`;
 
-  db.query(checkAccessSql, params, (err, checkResults) => {
+  db.query(checkAccessSql, [id], (err, checkResults) => {
     if (err || checkResults.length === 0) {
       return res.status(403).json({
         error: "You do not have permission to manage this area",
@@ -476,18 +452,18 @@ router.put("/:id/users/:userId", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only global admins and area_managers can manage area permissions
-  if (managerRole !== ROLES.ADMIN && managerRole !== ROLES.AREA_MANAGER) {
+  // Only global admins can manage area permissions
+  if (managerRole !== ROLES.ADMIN) {
     return res.status(403).json({
-      error: "Only admins and area managers can manage area permissions",
+      error: "Only admins can manage area permissions",
     });
   }
 
-  // Validate permission - do not allow 'admin' as area-level permission
-  const validPermissions = ["read", "update", "area_manager"];
+  // Validate permission - must be 'read' or 'update'
+  const validPermissions = ["read", "update"];
   if (!validPermissions.includes(permission)) {
     return res.status(400).json({
-      error: "Invalid permission. Must be 'read', 'update', or 'area_manager'",
+      error: "Invalid permission. Must be 'read' or 'update'",
     });
   }
 
@@ -568,7 +544,7 @@ router.put("/:id/users/:userId", requireAuth, (req, res) => {
 });
 
 // DELETE /api/areas/:id/users/:userId - Remove user from an area
-// Only global admins and area_managers can do this
+// Only global admins can do this
 router.delete("/:id/users/:userId", requireAuth, (req, res) => {
   const { id: areaId, userId } = req.params;
   const managerId = req.userId;
@@ -576,10 +552,10 @@ router.delete("/:id/users/:userId", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only global admins and area_managers can manage area permissions
-  if (managerRole !== ROLES.ADMIN && managerRole !== ROLES.AREA_MANAGER) {
+  // Only global admins can manage area permissions
+  if (managerRole !== ROLES.ADMIN) {
     return res.status(403).json({
-      error: "Only admins and area managers can manage area permissions",
+      error: "Only admins can manage area permissions",
     });
   }
 
@@ -589,13 +565,6 @@ router.delete("/:id/users/:userId", requireAuth, (req, res) => {
     if (err || areaResults.length === 0) {
       return res.status(404).json({
         error: "Area not found",
-      });
-    }
-
-    // Don't allow removing the last manager from an area
-    if (userId === managerId && managerRole === ROLES.AREA_MANAGER) {
-      return res.status(400).json({
-        error: "Cannot remove yourself from an area you manage",
       });
     }
 
@@ -638,7 +607,7 @@ router.delete("/:id/users/:userId", requireAuth, (req, res) => {
 
 // POST /api/areas/:id/users/search - Search users to add to area
 // Returns users not yet assigned to this area
-// Only global admins and area_managers can do this
+// Only global admins can do this
 router.post("/:id/users/search", requireAuth, (req, res) => {
   const { id: areaId } = req.params;
   const { query } = req.body;
@@ -647,10 +616,10 @@ router.post("/:id/users/search", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only global admins and area_managers can manage area permissions
-  if (managerRole !== ROLES.ADMIN && managerRole !== ROLES.AREA_MANAGER) {
+  // Only global admins can manage area permissions
+  if (managerRole !== ROLES.ADMIN) {
     return res.status(403).json({
-      error: "Only admins and area managers can manage area permissions",
+      error: "Only admins can manage area permissions",
     });
   }
 
@@ -704,7 +673,7 @@ router.post("/:id/users/search", requireAuth, (req, res) => {
 });
 
 // POST /api/areas/:id/users - Add user to area
-// Only global admins and area_managers can do this
+// Only global admins can do this
 router.post("/:id/users", requireAuth, (req, res) => {
   const { id: areaId } = req.params;
   const { userId, permission } = req.body;
@@ -713,15 +682,15 @@ router.post("/:id/users", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only global admins and area_managers can manage area permissions
-  if (managerRole !== ROLES.ADMIN && managerRole !== ROLES.AREA_MANAGER) {
+  // Only global admins can manage area permissions
+  if (managerRole !== ROLES.ADMIN) {
     return res.status(403).json({
-      error: "Only admins and area managers can manage area permissions",
+      error: "Only admins can manage area permissions",
     });
   }
 
-  // Validate permission - do not allow 'admin' as area-level permission
-  const validPermissions = ["read", "update", "area_manager"];
+  // Validate permission - must be 'read' or 'update'
+  const validPermissions = ["read", "update"];
   const finalPermission = validPermissions.includes(permission)
     ? permission
     : "read";
