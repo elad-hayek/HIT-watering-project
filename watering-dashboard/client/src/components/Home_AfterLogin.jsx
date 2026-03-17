@@ -203,9 +203,13 @@ export default function HomeAfterLogin({ user }) {
                     <div className="area-meta-row">
                       <span className="area-meta">{area.type}</span>
                       <span
-                        className={`area-permission permission-${area.permission}`}
+                        className={`area-permission permission-${user.role === "admin" ? "area_manager" : area.permission}`}
                       >
-                        {getPermissionDisplay(area.permission)}
+                        {getPermissionDisplay(
+                          user.role === "admin"
+                            ? "area_manager"
+                            : area.permission,
+                        )}
                       </span>
                     </div>
                   </div>
