@@ -54,8 +54,10 @@ export default function Header({ user, setUser, darkMode, setDarkMode }) {
                 <i className="fas fa-sign-out-alt"></i> Logout
               </button>
               <div className="user-info">
-                <span className="user-name">{user.name}</span>
-                {isAdmin() && <span className="user-role">Admin</span>}
+                <span className="user-name">
+                  {user.name}
+                  {isAdmin() && <span className="user-role">Admin</span>}
+                </span>
               </div>
             </>
           ) : (
