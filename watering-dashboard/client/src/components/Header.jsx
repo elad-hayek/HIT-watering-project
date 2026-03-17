@@ -31,9 +31,14 @@ export default function Header({ user, setUser, darkMode, setDarkMode }) {
                 <i className="fas fa-home"></i> Home
               </Link>
               {isAdmin() && (
-                <Link to="/user-management" className="nav-link">
-                  <i className="fas fa-users-cog"></i> User Management
-                </Link>
+                <>
+                  <Link to="/activity" className="nav-link">
+                    <i className="fas fa-history"></i> Activity
+                  </Link>
+                  <Link to="/user-management" className="nav-link">
+                    <i className="fas fa-users-cog"></i> User Management
+                  </Link>
+                </>
               )}
               <Link to="/user" className="nav-link">
                 <i className="fas fa-user"></i> Profile
