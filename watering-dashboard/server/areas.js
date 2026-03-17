@@ -130,10 +130,10 @@ router.post("/", requireAuth, (req, res) => {
 
       const areaId = result.insertId;
 
-      // Auto-assign creator as area manager with update permission
+      // Auto-assign creator as area manager with area_manager permission
       const mappingSql = `
         INSERT INTO user_area_mapping (user_id, area_id, permission, assigned_by)
-        VALUES (?, ?, 'update', ?)
+        VALUES (?, ?, 'area_manager', ?)
       `;
 
       db.query(mappingSql, [userId, areaId, userId], async (err2) => {
@@ -373,7 +373,7 @@ router.post(
 );
 
 // GET /api/areas/:id/users - Get all users assigned to an area
-// Only admins can view this
+// Only admins and area managers can view this
 router.get("/:id/users", requireAuth, (req, res) => {
   const { id } = req.params;
   const userId = req.userId;
@@ -381,23 +381,41 @@ router.get("/:id/users", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only admins can view and manage area users
-  if (userRole !== ROLES.ADMIN) {
-    return res.status(403).json({
-      error: "You do not have permission to manage this area",
+  // Check if user is admin or area manager
+  if (userRole === ROLES.ADMIN) {
+    // Admin can manage any area
+    // Verify the area exists
+    const checkAccessSql = `SELECT 1 FROM areas WHERE id = ? LIMIT 1`;
+
+    db.query(checkAccessSql, [id], (err, checkResults) => {
+      if (err || checkResults.length === 0) {
+        return res.status(403).json({
+          error: "You do not have permission to manage this area",
+        });
+      }
+
+      fetchAndReturnAreaUsers();
+    });
+  } else {
+    // Non-admin users must be area managers for this specific area
+    const checkManagerSql = `
+      SELECT permission FROM user_area_mapping 
+      WHERE user_id = ? AND area_id = ? AND permission = 'area_manager'
+      LIMIT 1
+    `;
+
+    db.query(checkManagerSql, [userId, id], (err, managerResults) => {
+      if (err || managerResults.length === 0) {
+        return res.status(403).json({
+          error: "You do not have permission to manage this area",
+        });
+      }
+
+      fetchAndReturnAreaUsers();
     });
   }
 
-  // Verify the area exists
-  const checkAccessSql = `SELECT 1 FROM areas WHERE id = ? LIMIT 1`;
-
-  db.query(checkAccessSql, [id], (err, checkResults) => {
-    if (err || checkResults.length === 0) {
-      return res.status(403).json({
-        error: "You do not have permission to manage this area",
-      });
-    }
-
+  function fetchAndReturnAreaUsers() {
     // Get all users assigned to this area
     const sql = `
       SELECT u.id, u.username, u.name, u.lastname, u.role, 
@@ -439,7 +457,7 @@ router.get("/:id/users", requireAuth, (req, res) => {
 
       res.json({ users: results });
     });
-  });
+  }
 });
 
 // PUT /api/areas/:id/users/:userId - Update user permission for an area
@@ -452,32 +470,55 @@ router.put("/:id/users/:userId", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only global admins can manage area permissions
-  if (managerRole !== ROLES.ADMIN) {
-    return res.status(403).json({
-      error: "Only admins can manage area permissions",
-    });
+  // Check if user is admin or area manager
+  function checkManagerPermission(callback) {
+    if (managerRole === ROLES.ADMIN) {
+      // Admin can manage any area
+      callback(true);
+    } else {
+      // Non-admin users must be area managers for this specific area
+      const checkManagerSql = `
+        SELECT permission FROM user_area_mapping 
+        WHERE user_id = ? AND area_id = ? AND permission = 'area_manager'
+        LIMIT 1
+      `;
+
+      db.query(checkManagerSql, [managerId, areaId], (err, managerResults) => {
+        callback(!err && managerResults.length > 0);
+      });
+    }
   }
 
-  // Validate permission - must be 'read' or 'update'
-  const validPermissions = ["read", "update"];
-  if (!validPermissions.includes(permission)) {
-    return res.status(400).json({
-      error: "Invalid permission. Must be 'read' or 'update'",
-    });
-  }
-
-  // Verify the area exists
-  const checkAreaSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
-  db.query(checkAreaSql, [areaId], (err, areaResults) => {
-    if (err || areaResults.length === 0) {
-      return res.status(404).json({
-        error: "Area not found",
+  checkManagerPermission((isManager) => {
+    if (!isManager) {
+      return res.status(403).json({
+        error: "Only admins and area managers can manage area permissions",
       });
     }
 
-    // Check if user being modified is the area creator or an admin
-    const checkFixedRoleSql = `
+    continueUpdate();
+  });
+
+  function continueUpdate() {
+    // Validate permission - must be 'read' or 'update'
+    const validPermissions = ["read", "update"];
+    if (!validPermissions.includes(permission)) {
+      return res.status(400).json({
+        error: "Invalid permission. Must be 'read' or 'update'",
+      });
+    }
+
+    // Verify the area exists
+    const checkAreaSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
+    db.query(checkAreaSql, [areaId], (err, areaResults) => {
+      if (err || areaResults.length === 0) {
+        return res.status(404).json({
+          error: "Area not found",
+        });
+      }
+
+      // Check if user being modified is the area creator or an admin
+      const checkFixedRoleSql = `
       SELECT u.role, a.created_by
       FROM users u
       INNER JOIN areas a ON a.id = ?
@@ -485,66 +526,71 @@ router.put("/:id/users/:userId", requireAuth, (req, res) => {
       LIMIT 1
     `;
 
-    db.query(checkFixedRoleSql, [areaId, userId], (err3, fixedRoleResults) => {
-      if (err3 || fixedRoleResults.length === 0) {
-        return res.status(500).json({ error: "Database error" });
-      }
+      db.query(
+        checkFixedRoleSql,
+        [areaId, userId],
+        (err3, fixedRoleResults) => {
+          if (err3 || fixedRoleResults.length === 0) {
+            return res.status(500).json({ error: "Database error" });
+          }
 
-      const userRole = fixedRoleResults[0].role;
-      const isCreator = fixedRoleResults[0].created_by === parseInt(userId);
-      const isAdmin = userRole === ROLES.ADMIN;
+          const userRole = fixedRoleResults[0].role;
+          const isCreator = fixedRoleResults[0].created_by === parseInt(userId);
+          const isAdmin = userRole === ROLES.ADMIN;
 
-      // Prevent changing permission for area creator or admins
-      if (isCreator || isAdmin) {
-        return res.status(403).json({
-          error:
-            "Cannot change permission for area creator or admin users. They always have editor permission.",
-        });
-      }
+          // Prevent changing permission for area creator or admins
+          if (isCreator || isAdmin) {
+            return res.status(403).json({
+              error:
+                "Cannot change permission for area creator or admin users. They always have editor permission.",
+            });
+          }
 
-      // Update the permission
-      const updateSql = `
+          // Update the permission
+          const updateSql = `
         UPDATE user_area_mapping 
         SET permission = ?
         WHERE user_id = ? AND area_id = ?
         LIMIT 1
       `;
 
-      db.query(updateSql, [permission, userId, areaId], async (err2) => {
-        if (err2) {
-          console.error("❌ Update user permission error:", err2);
-          return res.status(500).json({ error: "Database error" });
-        }
+          db.query(updateSql, [permission, userId, areaId], async (err2) => {
+            if (err2) {
+              console.error("❌ Update user permission error:", err2);
+              return res.status(500).json({ error: "Database error" });
+            }
 
-        try {
-          await writeAudit({
-            action: "area_user_permission_updated",
-            entity_type: "user_area",
-            entity_id: userId,
-            actor,
-            ip,
-            details: {
+            try {
+              await writeAudit({
+                action: "area_user_permission_updated",
+                entity_type: "user_area",
+                entity_id: userId,
+                actor,
+                ip,
+                details: {
+                  userId,
+                  areaId,
+                  permission,
+                  changedBy: managerId,
+                },
+              });
+            } catch (_) {}
+
+            res.json({
+              message: "User permission updated",
               userId,
               areaId,
               permission,
-              changedBy: managerId,
-            },
+            });
           });
-        } catch (_) {}
-
-        res.json({
-          message: "User permission updated",
-          userId,
-          areaId,
-          permission,
-        });
-      });
+        },
+      );
     });
-  });
+  }
 });
 
 // DELETE /api/areas/:id/users/:userId - Remove user from an area
-// Only global admins can do this
+// Only admins and area managers can do this
 router.delete("/:id/users/:userId", requireAuth, (req, res) => {
   const { id: areaId, userId } = req.params;
   const managerId = req.userId;
@@ -552,62 +598,86 @@ router.delete("/:id/users/:userId", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only global admins can manage area permissions
-  if (managerRole !== ROLES.ADMIN) {
-    return res.status(403).json({
-      error: "Only admins can manage area permissions",
-    });
+  // Check if user is admin or area manager
+  function checkManagerPermission(callback) {
+    if (managerRole === ROLES.ADMIN) {
+      // Admin can manage any area
+      callback(true);
+    } else {
+      // Non-admin users must be area managers for this specific area
+      const checkManagerSql = `
+        SELECT permission FROM user_area_mapping 
+        WHERE user_id = ? AND area_id = ? AND permission = 'area_manager'
+        LIMIT 1
+      `;
+
+      db.query(checkManagerSql, [managerId, areaId], (err, managerResults) => {
+        callback(!err && managerResults.length > 0);
+      });
+    }
   }
 
-  // Verify the area exists
-  const checkAreaSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
-  db.query(checkAreaSql, [areaId], (err, areaResults) => {
-    if (err || areaResults.length === 0) {
-      return res.status(404).json({
-        error: "Area not found",
+  checkManagerPermission((isManager) => {
+    if (!isManager) {
+      return res.status(403).json({
+        error: "Only admins and area managers can manage area permissions",
       });
     }
 
-    // Remove the user from the area
-    const deleteSql = `
-      DELETE FROM user_area_mapping 
-      WHERE user_id = ? AND area_id = ?
-      LIMIT 1
-    `;
+    continueDelete();
+  });
 
-    db.query(deleteSql, [userId, areaId], async (err2) => {
-      if (err2) {
-        console.error("❌ Remove user from area error:", err2);
-        return res.status(500).json({ error: "Database error" });
+  function continueDelete() {
+    // Verify the area exists
+    const checkAreaSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
+    db.query(checkAreaSql, [areaId], (err, areaResults) => {
+      if (err || areaResults.length === 0) {
+        return res.status(404).json({
+          error: "Area not found",
+        });
       }
 
-      try {
-        await writeAudit({
-          action: "area_user_removed",
-          entity_type: "user_area",
-          entity_id: userId,
-          actor,
-          ip,
-          details: {
-            userId,
-            areaId,
-            removedBy: managerId,
-          },
-        });
-      } catch (_) {}
+      // Remove the user from the area
+      const deleteSql = `
+        DELETE FROM user_area_mapping 
+        WHERE user_id = ? AND area_id = ?
+        LIMIT 1
+      `;
 
-      res.json({
-        message: "User removed from area",
-        userId,
-        areaId,
+      db.query(deleteSql, [userId, areaId], async (err2) => {
+        if (err2) {
+          console.error("❌ Remove user from area error:", err2);
+          return res.status(500).json({ error: "Database error" });
+        }
+
+        try {
+          await writeAudit({
+            action: "area_user_removed",
+            entity_type: "user_area",
+            entity_id: userId,
+            actor,
+            ip,
+            details: {
+              userId,
+              areaId,
+              removedBy: managerId,
+            },
+          });
+        } catch (_) {}
+
+        res.json({
+          message: "User removed from area",
+          userId,
+          areaId,
+        });
       });
     });
-  });
+  }
 });
 
 // POST /api/areas/:id/users/search - Search users to add to area
 // Returns users not yet assigned to this area
-// Only global admins can do this
+// Only admins and area managers can do this
 router.post("/:id/users/search", requireAuth, (req, res) => {
   const { id: areaId } = req.params;
   const { query } = req.body;
@@ -616,64 +686,88 @@ router.post("/:id/users/search", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only global admins can manage area permissions
-  if (managerRole !== ROLES.ADMIN) {
-    return res.status(403).json({
-      error: "Only admins can manage area permissions",
-    });
+  // Check if user is admin or area manager
+  function checkManagerPermission(callback) {
+    if (managerRole === ROLES.ADMIN) {
+      // Admin can manage any area
+      callback(true);
+    } else {
+      // Non-admin users must be area managers for this specific area
+      const checkManagerSql = `
+        SELECT permission FROM user_area_mapping 
+        WHERE user_id = ? AND area_id = ? AND permission = 'area_manager'
+        LIMIT 1
+      `;
+
+      db.query(checkManagerSql, [managerId, areaId], (err, managerResults) => {
+        callback(!err && managerResults.length > 0);
+      });
+    }
   }
 
-  // Verify the area exists
-  const checkAreaSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
-  db.query(checkAreaSql, [areaId], (err, areaResults) => {
-    if (err || areaResults.length === 0) {
-      return res.status(404).json({
-        error: "Area not found",
+  checkManagerPermission((isManager) => {
+    if (!isManager) {
+      return res.status(403).json({
+        error: "Only admins and area managers can manage area permissions",
       });
     }
 
-    // Get users not yet assigned to this area (excluding admins)
-    const searchTerm = `%${query}%`;
-    const sql = `
-      SELECT u.id, u.username, u.name, u.lastname, u.role
-      FROM users u
-      WHERE (u.username LIKE ? OR u.name LIKE ? OR u.lastname LIKE ?)
-      AND u.role != 'admin'
-      AND u.id NOT IN (
-        SELECT user_id FROM user_area_mapping WHERE area_id = ?
-      )
-      ORDER BY u.name ASC
-      LIMIT 20
-    `;
-
-    db.query(
-      sql,
-      [searchTerm, searchTerm, searchTerm, areaId],
-      async (err2, results) => {
-        if (err2) {
-          console.error("❌ Search users for area error:", err2);
-          return res.status(500).json({ error: "Database error" });
-        }
-
-        try {
-          await writeAudit({
-            action: "area_users_searched",
-            entity_type: "area",
-            entity_id: areaId,
-            actor,
-            ip,
-            details: { query },
-          });
-        } catch (_) {}
-
-        res.json({ users: results });
-      },
-    );
+    continueSearch();
   });
+
+  function continueSearch() {
+    // Verify the area exists
+    const checkAreaSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
+    db.query(checkAreaSql, [areaId], (err, areaResults) => {
+      if (err || areaResults.length === 0) {
+        return res.status(404).json({
+          error: "Area not found",
+        });
+      }
+
+      // Get users not yet assigned to this area (excluding admins)
+      const searchTerm = `%${query}%`;
+      const sql = `
+        SELECT u.id, u.username, u.name, u.lastname, u.role
+        FROM users u
+        WHERE (u.username LIKE ? OR u.name LIKE ? OR u.lastname LIKE ?)
+        AND u.role != 'admin'
+        AND u.id NOT IN (
+          SELECT user_id FROM user_area_mapping WHERE area_id = ?
+        )
+        ORDER BY u.name ASC
+        LIMIT 20
+      `;
+
+      db.query(
+        sql,
+        [searchTerm, searchTerm, searchTerm, areaId],
+        async (err2, results) => {
+          if (err2) {
+            console.error("❌ Search users for area error:", err2);
+            return res.status(500).json({ error: "Database error" });
+          }
+
+          try {
+            await writeAudit({
+              action: "area_users_searched",
+              entity_type: "area",
+              entity_id: areaId,
+              actor,
+              ip,
+              details: { query },
+            });
+          } catch (_) {}
+
+          res.json({ users: results });
+        },
+      );
+    });
+  }
 });
 
 // POST /api/areas/:id/users - Add user to area
-// Only global admins can do this
+// Only admins and area managers can do this
 router.post("/:id/users", requireAuth, (req, res) => {
   const { id: areaId } = req.params;
   const { userId, permission } = req.body;
@@ -682,97 +776,121 @@ router.post("/:id/users", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only global admins can manage area permissions
-  if (managerRole !== ROLES.ADMIN) {
-    return res.status(403).json({
-      error: "Only admins can manage area permissions",
-    });
+  // Check if user is admin or area manager
+  function checkManagerPermission(callback) {
+    if (managerRole === ROLES.ADMIN) {
+      // Admin can manage any area
+      callback(true);
+    } else {
+      // Non-admin users must be area managers for this specific area
+      const checkManagerSql = `
+        SELECT permission FROM user_area_mapping 
+        WHERE user_id = ? AND area_id = ? AND permission = 'area_manager'
+        LIMIT 1
+      `;
+
+      db.query(checkManagerSql, [managerId, areaId], (err, managerResults) => {
+        callback(!err && managerResults.length > 0);
+      });
+    }
   }
 
-  // Validate permission - must be 'read' or 'update'
-  const validPermissions = ["read", "update"];
-  const finalPermission = validPermissions.includes(permission)
-    ? permission
-    : "read";
-
-  // Verify the area exists
-  const checkAreaSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
-  db.query(checkAreaSql, [areaId], (err, areaResults) => {
-    if (err || areaResults.length === 0) {
-      return res.status(404).json({
-        error: "Area not found",
+  checkManagerPermission((isManager) => {
+    if (!isManager) {
+      return res.status(403).json({
+        error: "Only admins and area managers can manage area permissions",
       });
     }
 
-    // Check if user being added is an admin, don't allow adding admins to areas
-    const checkUserRoleSql = `
-      SELECT u.role
-      FROM users u
-      WHERE u.id = ?
-      LIMIT 1
-    `;
+    continueAddUser();
+  });
 
-    db.query(checkUserRoleSql, [userId], (err3, userResults) => {
-      if (err3 || userResults.length === 0) {
-        return res.status(500).json({ error: "Database error" });
-      }
+  function continueAddUser() {
+    // Validate permission - must be 'read' or 'update'
+    const validPermissions = ["read", "update"];
+    const finalPermission = validPermissions.includes(permission)
+      ? permission
+      : "read";
 
-      const addedUserRole = userResults[0].role;
-      const isAdmin = addedUserRole === ROLES.ADMIN;
-
-      // Don't allow adding admins to areas at all
-      if (isAdmin) {
-        return res.status(403).json({
-          error: "System admins cannot be assigned to specific areas",
+    // Verify the area exists
+    const checkAreaSql = `SELECT id FROM areas WHERE id = ? LIMIT 1`;
+    db.query(checkAreaSql, [areaId], (err, areaResults) => {
+      if (err || areaResults.length === 0) {
+        return res.status(404).json({
+          error: "Area not found",
         });
       }
 
-      // Add user to area
-      const sql = `
-        INSERT INTO user_area_mapping (user_id, area_id, permission, assigned_by)
-        VALUES (?, ?, ?, ?)
+      // Check if user being added is an admin, don't allow adding admins to areas
+      const checkUserRoleSql = `
+        SELECT u.role
+        FROM users u
+        WHERE u.id = ?
+        LIMIT 1
       `;
 
-      db.query(
-        sql,
-        [userId, areaId, finalPermission, managerId],
-        async (err2) => {
-          if (err2) {
-            if (err2.code === "ER_DUP_ENTRY") {
-              return res.status(409).json({
-                error: "User is already assigned to this area",
-              });
-            }
-            console.error("❌ Add user to area error:", err2);
-            return res.status(500).json({ error: "Database error" });
-          }
+      db.query(checkUserRoleSql, [userId], (err3, userResults) => {
+        if (err3 || userResults.length === 0) {
+          return res.status(500).json({ error: "Database error" });
+        }
 
-          try {
-            await writeAudit({
-              action: "area_user_added",
-              entity_type: "user_area",
-              entity_id: userId,
-              actor,
-              ip,
-              details: {
-                userId,
-                areaId,
-                permission: finalPermission,
-                addedBy: managerId,
-              },
-            });
-          } catch (_) {}
+        const addedUserRole = userResults[0].role;
+        const isAdmin = addedUserRole === ROLES.ADMIN;
 
-          res.status(201).json({
-            message: "User added to area",
-            userId,
-            areaId,
-            permission: finalPermission,
+        // Don't allow adding admins to areas at all
+        if (isAdmin) {
+          return res.status(403).json({
+            error: "System admins cannot be assigned to specific areas",
           });
-        },
-      );
+        }
+
+        // Add user to area
+        const sql = `
+          INSERT INTO user_area_mapping (user_id, area_id, permission, assigned_by)
+          VALUES (?, ?, ?, ?)
+        `;
+
+        db.query(
+          sql,
+          [userId, areaId, finalPermission, managerId],
+          async (err2) => {
+            if (err2) {
+              if (err2.code === "ER_DUP_ENTRY") {
+                return res.status(409).json({
+                  error: "User is already assigned to this area",
+                });
+              }
+              console.error("❌ Add user to area error:", err2);
+              return res.status(500).json({ error: "Database error" });
+            }
+
+            try {
+              await writeAudit({
+                action: "area_user_added",
+                entity_type: "user_area",
+                entity_id: userId,
+                actor,
+                ip,
+                details: {
+                  userId,
+                  areaId,
+                  permission: finalPermission,
+                  addedBy: managerId,
+                },
+              });
+            } catch (_) {}
+
+            res.status(201).json({
+              message: "User added to area",
+              userId,
+              areaId,
+              permission: finalPermission,
+            });
+          },
+        );
+      });
     });
-  });
+  }
 });
 
 module.exports = router;

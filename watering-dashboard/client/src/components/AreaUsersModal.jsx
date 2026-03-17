@@ -202,9 +202,9 @@ export default function AreaUsersModal({ area, onClose, user }) {
     }
   };
 
-  // Check if current user can manage area users (admin only)
+  // Check if current user can manage area users (admin or area manager)
   const canManageCurrentArea = () => {
-    return user.role === "admin";
+    return user.role === "admin" || area.permission === "area_manager";
   };
 
   const getPermissionDisplay = (permission) => {

@@ -235,7 +235,8 @@ export default function HomeAfterLogin({ user }) {
               <div className="area-header">
                 <h2>{selectedArea.name}</h2>
                 <div className="area-header-actions">
-                  {user.role === "admin" && (
+                  {(user.role === "admin" ||
+                    selectedArea.permission === "area_manager") && (
                     <button
                       className="btn btn-secondary"
                       onClick={() => handleManageAreaUsers(selectedArea)}

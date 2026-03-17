@@ -113,7 +113,7 @@ function getRoleDisplayName(role) {
  * - Area Manager: permission is determined by user_area_mapping record
  * - User: permission is determined by user_area_mapping record (usually 'read' only)
  * @param {string} userRole - User's role
- * @param {string} areaPermission - Permission from user_area_mapping ('read' or 'update')
+ * @param {string} areaPermission - Permission from user_area_mapping ('read', 'update', 'area_manager', or 'admin')
  * @returns {boolean} - True if user has update permission
  */
 function hasAreaUpdatePermission(userRole, areaPermission) {
@@ -121,15 +121,19 @@ function hasAreaUpdatePermission(userRole, areaPermission) {
   if (userRole === ROLES.ADMIN) {
     return true;
   }
-  // Check if permission is 'update'
-  return areaPermission === "update";
+  // Check if permission is 'update', 'area_manager', or 'admin'
+  return (
+    areaPermission === "update" ||
+    areaPermission === "area_manager" ||
+    areaPermission === "admin"
+  );
 }
 
 /**
  * Check if a user has read permission on an area
  * Rules:
  * - Admin: always has read permission
- * - User: if assigned to area, they have read permission
+ * - User: if assigned to area with any permission level, they can read it
  * @param {string} userRole - User's role
  * @returns {boolean} - True if user can read the area
  */

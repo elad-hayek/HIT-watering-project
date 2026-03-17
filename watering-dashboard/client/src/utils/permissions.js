@@ -4,11 +4,15 @@
 
 /**
  * Check if a user has update permission for an area
- * @param {string} permission - Permission from area object ('read' or 'update')
+ * @param {string} permission - Permission from area object ('read', 'update', 'area_manager', or 'admin')
  * @returns {boolean}
  */
 export function hasUpdatePermission(permission) {
-  return permission === "update";
+  return (
+    permission === "update" ||
+    permission === "area_manager" ||
+    permission === "admin"
+  );
 }
 
 /**
@@ -17,7 +21,12 @@ export function hasUpdatePermission(permission) {
  * @returns {boolean}
  */
 export function hasReadPermission(permission) {
-  return permission === "read" || permission === "update";
+  return (
+    permission === "read" ||
+    permission === "update" ||
+    permission === "area_manager" ||
+    permission === "admin"
+  );
 }
 
 /**
@@ -29,6 +38,7 @@ export function getPermissionDisplay(permission) {
   const displayMap = {
     read: "📖 Read Only",
     update: "✏️ Editor",
+    area_manager: "👨‍💼 Area Manager",
     admin: "🔑 Admin",
   };
   return displayMap[permission] || "Unknown";
@@ -45,6 +55,8 @@ export function getPermissionBadgeClass(permission) {
       return "permission-read";
     case "update":
       return "permission-update";
+    case "area_manager":
+      return "permission-area_manager";
     case "admin":
       return "permission-admin";
     default:
