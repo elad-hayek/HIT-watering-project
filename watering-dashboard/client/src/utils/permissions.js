@@ -79,14 +79,15 @@ export function canManageAreaUsers(globalRole, areaPermission) {
 
 /**
  * Check if a user can delete an area
- * Only admins can delete
+ * Admins and area managers can delete
  * @param {string} globalRole - User's global role
  * @param {string} areaPermission - User's permission level for that specific area
  * @returns {boolean}
  */
 export function canDeleteArea(globalRole, areaPermission) {
-  // Only global admin can delete areas
-  return globalRole === "admin";
+  // Global admin can delete any area
+  // Area managers can delete their areas
+  return globalRole === "admin" || areaPermission === "area_manager";
 }
 
 export default {

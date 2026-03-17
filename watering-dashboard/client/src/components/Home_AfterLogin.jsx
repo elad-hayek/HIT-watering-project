@@ -10,6 +10,7 @@ import { getStatusDisplay } from "../utils/statusMapping";
 import {
   hasUpdatePermission,
   getPermissionDisplay,
+  canDeleteArea,
 } from "../utils/permissions";
 
 export default function HomeAfterLogin({ user }) {
@@ -214,7 +215,7 @@ export default function HomeAfterLogin({ user }) {
                     </div>
                   </div>
                   <div className="area-actions">
-                    {user.role === "admin" && (
+                    {canDeleteArea(user.role, area.permission) && (
                       <button
                         className="btn-icon btn-danger"
                         title="Delete area"

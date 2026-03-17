@@ -175,6 +175,17 @@
   display: flex;
   gap: 10px;
   margin-top: 25px;
+  align-items: center;
+}
+
+.modal-actions .btn-danger {
+  flex: 0;
+  margin-right: auto;
+}
+
+.modal-actions .btn-cancel,
+.modal-actions .btn-primary {
+  flex: 1;
 }
 
 .btn {
@@ -185,7 +196,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  flex: 1;
 }
 
 .btn-primary {
@@ -226,6 +236,27 @@
 [data-theme="dark"] .btn-cancel:hover {
   background: #454545;
 }
+
+.btn-danger {
+  background: #d32f2f;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .btn-danger {
+  background: #e53935;
+  color: #fff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b71c1c;
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .btn-danger:hover:not(:disabled) {
+  background: #d32f2f;
+}
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;

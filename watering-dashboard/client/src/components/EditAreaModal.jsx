@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./EditAreaModal.css";
+import { canDeleteArea } from "../utils/permissions";
 
 export default function EditAreaModal({ area, onClose, onUpdate, user }) {
   const [name, setName] = useState("");
@@ -7,6 +8,7 @@ export default function EditAreaModal({ area, onClose, onUpdate, user }) {
   const [type, setType] = useState("rectangle");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (area) {
@@ -63,6 +65,48 @@ export default function EditAreaModal({ area, onClose, onUpdate, user }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this area? This action cannot be undone and will also delete all plants in this area.",
+      )
+    ) {
+      return;
+    }
+
+    setError("");
+    setDeleting(true);
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/areas/${area.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-user": user.username,
+            "x-user-id": user.id,
+            "x-user-role": user.role,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || "Failed to delete area");
+        setDeleting(false);
+        return;
+      }
+
+      setDeleting(false);
+      onUpdate();
+    } catch (err) {
+      setError("Connection error: " + err.message);
+      setDeleting(false);
+    }
+  };
+
+  const canDelete = canDeleteArea(user.role, area?.permission);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -104,13 +148,23 @@ export default function EditAreaModal({ area, onClose, onUpdate, user }) {
           </div>
 
           <div className="modal-actions">
+            {canDelete && (
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={handleDelete}
+                disabled={deleting || loading}
+              >
+                {deleting ? "Deleting..." : "Delete Area"}
+              </button>
+            )}
             <button type="button" className="btn btn-cancel" onClick={onClose}>
               Cancel
             </button>
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={loading}
+              disabled={loading || deleting}
             >
               {loading ? "Updating..." : "Update Area"}
             </button>

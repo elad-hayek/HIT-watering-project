@@ -252,14 +252,32 @@ router.delete("/:id", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  // Only admins can delete
+  // Only admins or area managers can delete
   if (userRole === ROLES.ADMIN) {
     // Admin can delete any area
     performDelete();
   } else {
-    return res.status(403).json({
-      error: "You do not have permission to delete areas",
+    // Non-admin users must have area_manager permission
+    const checkPermissionSql = `
+      SELECT uam.permission FROM user_area_mapping uam
+      WHERE uam.area_id = ? AND uam.user_id = ?
+      LIMIT 1
+    `;
+    db.query(checkPermissionSql, [id, userId], (err, results) => {
+      if (err) {
+        console.error("❌ Permission check error:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      if (results.length === 0 || results[0].permission !== "area_manager") {
+        return res.status(403).json({
+          error: "You do not have permission to delete this area",
+        });
+      }
+
+      performDelete();
     });
+    return;
   }
 
   function performDelete() {
