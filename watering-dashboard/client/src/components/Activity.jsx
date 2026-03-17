@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FixedSizeList as List } from "react-window";
 import "./Activity.css";
+import { API_BASE_URL } from "../config";
 
 export default function Activity({ user }) {
   const [logs, setLogs] = useState([]);
@@ -37,16 +38,13 @@ export default function Activity({ user }) {
         if (filterUser) params.append("user", filterUser);
         if (filterAction) params.append("action", filterAction);
 
-        const res = await fetch(
-          `http://localhost:3000/api/audit/logs?${params}`,
-          {
-            headers: {
-              "x-user": user.username,
-              "x-user-id": user.id,
-              "x-user-role": user.role,
-            },
+        const res = await fetch(`${API_BASE_URL}/api/audit/logs?${params}`, {
+          headers: {
+            "x-user": user.username,
+            "x-user-id": user.id,
+            "x-user-role": user.role,
           },
-        );
+        });
 
         if (!res.ok) throw new Error("Failed to fetch logs");
 
@@ -74,7 +72,7 @@ export default function Activity({ user }) {
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/audit/filters", {
+        const res = await fetch(`${API_BASE_URL}/api/audit/filters`, {
           headers: {
             "x-user": user.username,
             "x-user-id": user.id,

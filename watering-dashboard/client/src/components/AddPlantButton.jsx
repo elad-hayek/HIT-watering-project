@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./AddPlantButton.css";
+import { API_BASE_URL } from "../config";
 
 export default function AddPlantButton({
   areaId,
@@ -109,7 +110,7 @@ export default function AddPlantButton({
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3000/api/plants", {
+      const response = await fetch(`${API_BASE_URL}/api/plants`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

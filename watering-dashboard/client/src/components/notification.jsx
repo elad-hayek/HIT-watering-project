@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./notification.css";
+import { API_BASE_URL } from "../config";
 
 export default function Notification({ user }) {
   const [logs, setLogs] = useState([]);
@@ -14,7 +15,7 @@ export default function Notification({ user }) {
 
   const loadLogs = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/audit?limit=50", {
+      const res = await fetch(`${API_BASE_URL}/api/audit?limit=50`, {
         headers: {
           "x-user-id": user.id,
           "x-user-role": user.role,

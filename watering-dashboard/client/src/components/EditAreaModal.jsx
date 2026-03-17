@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./EditAreaModal.css";
 import { canDeleteArea } from "../utils/permissions";
+import { API_BASE_URL } from "../config";
 
 export default function EditAreaModal({ area, onClose, onUpdate, user }) {
   const [name, setName] = useState("");
@@ -30,25 +31,22 @@ export default function EditAreaModal({ area, onClose, onUpdate, user }) {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `http://localhost:3000/api/areas/${area.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user": user.username,
-            "x-user-id": user.id,
-            "x-user-role": user.role,
-          },
-          body: JSON.stringify({
-            name,
-            description,
-            type,
-            bounds_json: area.bounds_json,
-            positions: area.positions,
-          }),
+      const response = await fetch(`${API_BASE_URL}/api/areas/${area.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user": user.username,
+          "x-user-id": user.id,
+          "x-user-role": user.role,
         },
-      );
+        body: JSON.stringify({
+          name,
+          description,
+          type,
+          bounds_json: area.bounds_json,
+          positions: area.positions,
+        }),
+      });
 
       if (!response.ok) {
         const data = await response.json();
@@ -78,17 +76,14 @@ export default function EditAreaModal({ area, onClose, onUpdate, user }) {
     setDeleting(true);
 
     try {
-      const response = await fetch(
-        `http://localhost:3000/api/areas/${area.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "x-user": user.username,
-            "x-user-id": user.id,
-            "x-user-role": user.role,
-          },
+      const response = await fetch(`${API_BASE_URL}/api/areas/${area.id}`, {
+        method: "DELETE",
+        headers: {
+          "x-user": user.username,
+          "x-user-id": user.id,
+          "x-user-role": user.role,
         },
-      );
+      });
 
       if (!response.ok) {
         const data = await response.json();

@@ -7,6 +7,7 @@ import EditPlantModal from "./EditPlantModal";
 import AreaDetailMap from "./AreaDetailMap";
 import AreaUsersModal from "./AreaUsersModal";
 import { getStatusDisplay } from "../utils/statusMapping";
+import { API_BASE_URL } from "../config";
 import {
   hasUpdatePermission,
   getPermissionDisplay,
@@ -34,7 +35,7 @@ export default function HomeAfterLogin({ user }) {
 
   const loadAreas = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/areas", {
+      const res = await fetch(`${API_BASE_URL}/api/areas`, {
         headers: {
           "x-user-id": user.id,
           "x-user-role": user.role,
@@ -52,16 +53,13 @@ export default function HomeAfterLogin({ user }) {
 
   const loadPlants = async (areaId) => {
     try {
-      const res = await fetch(
-        `http://localhost:3000/api/plants?areaId=${areaId}`,
-        {
-          headers: {
-            "x-user-id": user.id,
-            "x-user-role": user.role,
-            "x-user": user.username,
-          },
+      const res = await fetch(`${API_BASE_URL}/api/plants?areaId=${areaId}`, {
+        headers: {
+          "x-user-id": user.id,
+          "x-user-role": user.role,
+          "x-user": user.username,
         },
-      );
+      });
       const data = await res.json();
       setPlants(data.plants || []);
     } catch (err) {
@@ -99,7 +97,7 @@ export default function HomeAfterLogin({ user }) {
       )
     ) {
       try {
-        const res = await fetch(`http://localhost:3000/api/areas/${areaId}`, {
+        const res = await fetch(`${API_BASE_URL}/api/areas/${areaId}`, {
           method: "DELETE",
           headers: {
             "x-user-id": user.id,
@@ -145,7 +143,7 @@ export default function HomeAfterLogin({ user }) {
   const handleDeletePlant = async (plantId) => {
     if (window.confirm("Are you sure you want to delete this plant?")) {
       try {
-        const res = await fetch(`http://localhost:3000/api/plants/${plantId}`, {
+        const res = await fetch(`${API_BASE_URL}/api/plants/${plantId}`, {
           method: "DELETE",
           headers: {
             "x-user-id": user.id,

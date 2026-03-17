@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./AddAreaButton.css";
+import { API_BASE_URL } from "../config";
 
 export default function AddAreaButton({ onAreaCreated, user }) {
   const [showModal, setShowModal] = useState(false);
@@ -195,7 +196,7 @@ export default function AddAreaButton({ onAreaCreated, user }) {
           ? JSON.stringify(drawnShape.bounds)
           : JSON.stringify(drawnShape.positions);
 
-      const response = await fetch("http://localhost:3000/api/areas", {
+      const response = await fetch(`${API_BASE_URL}/api/areas`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

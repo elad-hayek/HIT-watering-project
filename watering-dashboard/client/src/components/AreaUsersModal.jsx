@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./AreaUsersModal.css";
+import { API_BASE_URL } from "../config";
 
 export default function AreaUsersModal({ area, onClose, user }) {
   const [areaUsers, setAreaUsers] = useState([]);
@@ -23,16 +24,13 @@ export default function AreaUsersModal({ area, onClose, user }) {
   const loadAreaUsers = async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `http://localhost:3000/api/areas/${area.id}/users`,
-        {
-          headers: {
-            "x-user-id": user.id,
-            "x-user-role": user.role,
-            "x-user": user.username,
-          },
+      const res = await fetch(`${API_BASE_URL}/api/areas/${area.id}/users`, {
+        headers: {
+          "x-user-id": user.id,
+          "x-user-role": user.role,
+          "x-user": user.username,
         },
-      );
+      });
       const data = await res.json();
       setAreaUsers(data.users || []);
     } catch (err) {
@@ -55,7 +53,7 @@ export default function AreaUsersModal({ area, onClose, user }) {
     setHasAttemptedSearch(true);
     try {
       const res = await fetch(
-        `http://localhost:3000/api/areas/${area.id}/users/search`,
+        `${API_BASE_URL}/api/areas/${area.id}/users/search`,
         {
           method: "POST",
           headers: {
@@ -82,22 +80,19 @@ export default function AreaUsersModal({ area, onClose, user }) {
     setMessage("");
 
     try {
-      const res = await fetch(
-        `http://localhost:3000/api/areas/${area.id}/users`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-id": user.id,
-            "x-user-role": user.role,
-            "x-user": user.username,
-          },
-          body: JSON.stringify({
-            userId,
-            permission: selectedPermission,
-          }),
+      const res = await fetch(`${API_BASE_URL}/api/areas/${area.id}/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+          "x-user-role": user.role,
+          "x-user": user.username,
         },
-      );
+        body: JSON.stringify({
+          userId,
+          permission: selectedPermission,
+        }),
+      });
 
       if (!res.ok) {
         const error = await res.json();
@@ -124,7 +119,7 @@ export default function AreaUsersModal({ area, onClose, user }) {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/areas/${area.id}/users/${userId}`,
+        `${API_BASE_URL}/api/areas/${area.id}/users/${userId}`,
         {
           method: "PUT",
           headers: {
@@ -176,7 +171,7 @@ export default function AreaUsersModal({ area, onClose, user }) {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/areas/${area.id}/users/${userId}`,
+        `${API_BASE_URL}/api/areas/${area.id}/users/${userId}`,
         {
           method: "DELETE",
           headers: {
