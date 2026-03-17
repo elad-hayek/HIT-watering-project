@@ -180,8 +180,9 @@ body.dark-mode .message.error {
 
 /* Add User Section */
 .add-user-section {
-  padding-bottom: 20px;
-  border-bottom: 1px solid #ecf0f1;
+  padding-bottom: 25px;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #ecf0f1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -196,9 +197,12 @@ body.dark-mode .add-user-section {
 
 .add-user-form {
   background: #f8f9fa;
-  padding: 18px;
+  padding: 20px;
   border-radius: 8px;
   border: 1px solid #e8eef7;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -215,19 +219,21 @@ body.dark-mode .add-user-form {
 
 .form-group {
   display: flex;
-  gap: 8px;
-  margin-bottom: 15px;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
 }
 
 .search-input {
   flex: 1;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border: 2px solid #ddd;
   border-radius: 6px;
   font-size: 0.95em;
   transition: all 0.2s;
   background: white;
   color: #1a1a1a;
+  min-height: 44px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -281,8 +287,10 @@ body.dark-mode .search-input:focus {
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-size: 0.95em;
+  min-height: 44px;
 }
 
 .btn-primary {
@@ -302,8 +310,9 @@ body.dark-mode .search-input:focus {
 }
 
 .btn-sm {
-  padding: 6px 12px;
+  padding: 8px 16px;
   font-size: 0.85em;
+  min-height: 36px;
 }
 
 .btn-success {
@@ -361,20 +370,18 @@ body.dark-mode .search-input:focus {
 /* Search Results - Default Permission Section */
 .results-header {
   margin-bottom: 20px;
-  padding: 16px 18px;
-  background: #f5f7fa;
+  padding: 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #eef2f9 100%);
   border-radius: 8px;
-  border: 1px solid #e8ecf2;
+  border: 1px solid #e0e8f4;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
 }
 
 @media (prefers-color-scheme: dark) {
   .results-header {
-    background: #2a2a3a;
+    background: linear-gradient(135deg, #2a2a3a 0%, #323245 100%);
     border-color: #3a3a4a;
   }
 
@@ -384,7 +391,7 @@ body.dark-mode .search-input:focus {
 }
 
 body.dark-mode .results-header {
-  background: #2a2a3a;
+  background: linear-gradient(135deg, #2a2a3a 0%, #323245 100%);
   border-color: #3a3a4a;
 }
 
@@ -401,6 +408,7 @@ body.dark-mode .results-header label {
   font-size: 0.98em;
   margin: 0;
   white-space: nowrap;
+  width: 100%;
 }
 
 .permission-note {
@@ -408,31 +416,41 @@ body.dark-mode .results-header label {
   font-size: 0.85em;
   color: #666;
   font-weight: 400;
-  margin-top: 8px;
+  margin: 0;
   line-height: 1.4;
   width: 100%;
+  padding: 10px 12px;
+  background: rgba(102, 126, 234, 0.08);
+  border-left: 3px solid #667eea;
+  border-radius: 4px;
 }
 
 @media (prefers-color-scheme: dark) {
   .permission-note {
     color: #aaa;
+    background: rgba(102, 126, 234, 0.12);
+    border-left-color: #8b9bff;
   }
 }
 
 body.dark-mode .permission-note {
   color: #aaa;
+  background: rgba(102, 126, 234, 0.12);
+  border-left-color: #8b9bff;
 }
 
 .permission-select {
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 2px solid #ddd;
-  border-radius: 5px;
+  border-radius: 6px;
   font-size: 0.9em;
   cursor: pointer;
   transition: all 0.2s;
   font-weight: 500;
   background: white;
   color: #1a1a1a;
+  min-height: 44px;
+  max-width: 250px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -468,24 +486,28 @@ body.dark-mode .permission-select:focus {
 .search-results {
   background: white;
   border: 1px solid #e1ecf7;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-bottom: 15px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   .search-results {
     background: #2a2a3a;
     border-color: #3a3a4a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 }
 
 body.dark-mode .search-results {
   background: #2a2a3a;
   border-color: #3a3a4a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .search-result-item {
-  padding: 14px 16px;
+  padding: 16px 18px;
   border-bottom: 1px solid #ecf0f1;
   display: flex;
   justify-content: space-between;
@@ -493,12 +515,14 @@ body.dark-mode .search-results {
   cursor: pointer;
   transition: all 0.2s;
   background: #ffffff;
+  gap: 15px;
+  min-height: 50px;
 }
 
 .search-result-item:hover {
-  background: #e8f1fb;
-  border-left: 3px solid #667eea;
-  padding-left: 13px;
+  background: #f0f4f8;
+  border-left: 4px solid #667eea;
+  padding-left: 14px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -516,9 +540,9 @@ body.dark-mode .search-results {
   }
 
   .search-result-item:hover {
-    background: #505070;
-    border-left: 3px solid #8b9bff;
-    padding-left: 13px;
+    background: #464680;
+    border-left: 4px solid #8b9bff;
+    padding-left: 14px;
   }
 }
 
@@ -536,26 +560,36 @@ body.dark-mode .search-result-item .user-meta {
 }
 
 body.dark-mode .search-result-item:hover {
-  background: #505070;
-  border-left: 3px solid #8b9bff;
-  padding-left: 13px;
+  background: #464680;
+  border-left: 4px solid #8b9bff;
+  padding-left: 14px;
 }
 
 .search-result-item:last-child {
   border-bottom: none;
 }
 
+.user-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .user-name {
   font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-size: 1.05em;
+  display: block;
 }
 
 .user-meta {
   font-size: 0.9em;
   color: #555;
   font-weight: 500;
+  display: block;
 }
 
 /* Loading State */
@@ -868,17 +902,19 @@ body.dark-mode .no-action {
 /* No search results message */
 .no-results-message {
   text-align: center;
-  padding: 40px 20px;
+  padding: 50px 30px;
   color: #999;
   background: #f9f9f9;
   border-radius: 8px;
   margin-top: 15px;
+  border: 2px dashed #ddd;
 }
 
 @media (prefers-color-scheme: dark) {
   .no-results-message {
     background: #2a2a3a;
     color: #666;
+    border-color: #3a3a4a;
   }
 
   .no-results-message i {
@@ -889,6 +925,7 @@ body.dark-mode .no-action {
 body.dark-mode .no-results-message {
   background: #2a2a3a;
   color: #666;
+  border-color: #3a3a4a;
 }
 
 body.dark-mode .no-results-message i {
