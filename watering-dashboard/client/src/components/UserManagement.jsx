@@ -7,6 +7,7 @@ export default function UserManagement({ user }) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [message, setMessage] = useState("");
+  const [hasAttemptedSearch, setHasAttemptedSearch] = useState(false);
 
   // Check if user is admin
   const isAdmin = user?.role === "admin";
@@ -15,11 +16,13 @@ export default function UserManagement({ user }) {
     e.preventDefault();
     if (!searchQuery.trim()) {
       setUsers([]);
+      setHasAttemptedSearch(false);
       return;
     }
 
     setLoading(true);
     setMessage("");
+    setHasAttemptedSearch(true);
 
     try {
       const response = await fetch(
@@ -231,14 +234,14 @@ export default function UserManagement({ user }) {
         </div>
       )}
 
-      {!loading && users.length === 0 && searchQuery && (
+      {!loading && users.length === 0 && hasAttemptedSearch && (
         <div className="no-results">
           <i className="fas fa-search"></i>
           <p>No users found matching "{searchQuery}"</p>
         </div>
       )}
 
-      {!loading && users.length === 0 && !searchQuery && (
+      {!loading && users.length === 0 && !hasAttemptedSearch && (
         <div className="empty-state">
           <i className="fas fa-users"></i>
           <p>Search for users to manage them</p>

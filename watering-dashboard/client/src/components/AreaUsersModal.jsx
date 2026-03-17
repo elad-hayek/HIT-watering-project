@@ -9,6 +9,7 @@ export default function AreaUsersModal({ area, onClose, user }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [hasAttemptedSearch, setHasAttemptedSearch] = useState(false);
   const [selectedPermission, setSelectedPermission] = useState("read");
   const [updatingUser, setUpdatingUser] = useState(null);
   const [removingUser, setRemovingUser] = useState(null);
@@ -46,10 +47,12 @@ export default function AreaUsersModal({ area, onClose, user }) {
     e.preventDefault();
     if (!searchQuery.trim()) {
       setSearchResults([]);
+      setHasAttemptedSearch(false);
       return;
     }
 
     setSearching(true);
+    setHasAttemptedSearch(true);
     try {
       const res = await fetch(
         `http://localhost:3000/api/areas/${area.id}/users/search`,
@@ -318,12 +321,23 @@ export default function AreaUsersModal({ area, onClose, user }) {
                       </div>
                     )}
 
+                    {!searching &&
+                      searchResults.length === 0 &&
+                      hasAttemptedSearch && (
+                        <div className="no-results-message">
+                          <i className="fas fa-search"></i>
+                          <p>No users found matching "{searchQuery}"</p>
+                          <small>Try a different name or ID</small>
+                        </div>
+                      )}
+
                     <button
                       className="btn btn-sm btn-secondary"
                       onClick={() => {
                         setShowAddForm(false);
                         setSearchQuery("");
                         setSearchResults([]);
+                        setHasAttemptedSearch(false);
                       }}
                     >
                       Cancel
@@ -364,15 +378,30 @@ export default function AreaUsersModal({ area, onClose, user }) {
                               handleUpdatePermission(u.id, e.target.value)
                             }
                             className="permission-select"
-                            disabled={updatingUser === u.id}
+                            disabled={updatingUser === u.id || u.isFixedRole}
                             style={{
                               backgroundColor: getPermissionColor(u.permission),
                               color: "white",
+                              opacity: u.isFixedRole ? 0.7 : 1,
+                              cursor: u.isFixedRole ? "not-allowed" : "pointer",
                             }}
+                            title={
+                              u.isFixedRole
+                                ? "Permission is fixed for this user"
+                                : ""
+                            }
                           >
                             <option value="read">📖 Read Only</option>
                             <option value="update">✏️ Editor</option>
                           </select>
+                          {u.isFixedRole && (
+                            <span
+                              className="fixed-role-badge"
+                              title="Fixed role - cannot be changed"
+                            >
+                              🔒 Fixed
+                            </span>
+                          )}
                         </div>
 
                         <div className="user-col-actions">

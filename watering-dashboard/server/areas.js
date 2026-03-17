@@ -420,9 +420,16 @@ router.get("/:id/users", requireAuth, (req, res) => {
     // Get all users assigned to this area
     const sql = `
       SELECT u.id, u.username, u.name, u.lastname, u.role, 
-             uam.permission, uam.assigned_at, uam.assigned_by
+             uam.permission, uam.assigned_at, uam.assigned_by,
+             a.created_by,
+             CASE 
+               WHEN u.id = a.created_by THEN true
+               WHEN u.role = 'admin' THEN true
+               ELSE false
+             END as isFixedRole
       FROM user_area_mapping uam
       INNER JOIN users u ON uam.user_id = u.id
+      INNER JOIN areas a ON uam.area_id = a.id
       WHERE uam.area_id = ?
       ORDER BY uam.assigned_at DESC
     `;
@@ -432,6 +439,12 @@ router.get("/:id/users", requireAuth, (req, res) => {
         console.error("❌ Get area users error:", err2);
         return res.status(500).json({ error: "Database error" });
       }
+
+      // For creator and admins, force permission to 'update'
+      results = results.map((u) => ({
+        ...u,
+        permission: u.isFixedRole ? "update" : u.permission,
+      }));
 
       try {
         await writeAudit({
@@ -495,41 +508,68 @@ router.put("/:id/users/:userId", requireAuth, (req, res) => {
       });
     }
 
-    // Update the permission
-    const updateSql = `
-      UPDATE user_area_mapping 
-      SET permission = ?
-      WHERE user_id = ? AND area_id = ?
+    // Check if user being modified is the area creator or an admin
+    const checkFixedRoleSql = `
+      SELECT u.role, a.created_by
+      FROM users u
+      INNER JOIN areas a ON a.id = ?
+      WHERE u.id = ?
       LIMIT 1
     `;
 
-    db.query(updateSql, [permission, userId, areaId], async (err2) => {
-      if (err2) {
-        console.error("❌ Update user permission error:", err2);
+    db.query(checkFixedRoleSql, [areaId, userId], (err3, fixedRoleResults) => {
+      if (err3 || fixedRoleResults.length === 0) {
         return res.status(500).json({ error: "Database error" });
       }
 
-      try {
-        await writeAudit({
-          action: "area_user_permission_updated",
-          entity_type: "user_area",
-          entity_id: userId,
-          actor,
-          ip,
-          details: {
-            userId,
-            areaId,
-            permission,
-            changedBy: managerId,
-          },
-        });
-      } catch (_) {}
+      const userRole = fixedRoleResults[0].role;
+      const isCreator = fixedRoleResults[0].created_by === parseInt(userId);
+      const isAdmin = userRole === ROLES.ADMIN;
 
-      res.json({
-        message: "User permission updated",
-        userId,
-        areaId,
-        permission,
+      // Prevent changing permission for area creator or admins
+      if (isCreator || isAdmin) {
+        return res.status(403).json({
+          error:
+            "Cannot change permission for area creator or admin users. They always have editor permission.",
+        });
+      }
+
+      // Update the permission
+      const updateSql = `
+        UPDATE user_area_mapping 
+        SET permission = ?
+        WHERE user_id = ? AND area_id = ?
+        LIMIT 1
+      `;
+
+      db.query(updateSql, [permission, userId, areaId], async (err2) => {
+        if (err2) {
+          console.error("❌ Update user permission error:", err2);
+          return res.status(500).json({ error: "Database error" });
+        }
+
+        try {
+          await writeAudit({
+            action: "area_user_permission_updated",
+            entity_type: "user_area",
+            entity_id: userId,
+            actor,
+            ip,
+            details: {
+              userId,
+              areaId,
+              permission,
+              changedBy: managerId,
+            },
+          });
+        } catch (_) {}
+
+        res.json({
+          message: "User permission updated",
+          userId,
+          areaId,
+          permission,
+        });
       });
     });
   });
@@ -656,12 +696,13 @@ router.post("/:id/users/search", requireAuth, (req, res) => {
       });
     }
 
-    // Get users not yet assigned to this area
+    // Get users not yet assigned to this area (excluding admins)
     const searchTerm = `%${query}%`;
     const sql = `
       SELECT u.id, u.username, u.name, u.lastname, u.role
       FROM users u
       WHERE (u.username LIKE ? OR u.name LIKE ? OR u.lastname LIKE ?)
+      AND u.role != 'admin'
       AND u.id NOT IN (
         SELECT user_id FROM user_area_mapping WHERE area_id = ?
       )
@@ -740,50 +781,71 @@ router.post("/:id/users", requireAuth, (req, res) => {
       });
     }
 
-    // Add user to area
-    const sql = `
-      INSERT INTO user_area_mapping (user_id, area_id, permission, assigned_by)
-      VALUES (?, ?, ?, ?)
+    // Check if user being added is an admin or area creator, force them to 'update'
+    const checkUserRoleSql = `
+      SELECT u.role, a.created_by
+      FROM users u
+      INNER JOIN areas a ON a.id = ?
+      WHERE u.id = ?
+      LIMIT 1
     `;
 
-    db.query(
-      sql,
-      [userId, areaId, finalPermission, managerId],
-      async (err2) => {
-        if (err2) {
-          if (err2.code === "ER_DUP_ENTRY") {
-            return res.status(409).json({
-              error: "User is already assigned to this area",
-            });
+    db.query(checkUserRoleSql, [areaId, userId], (err3, userResults) => {
+      if (err3 || userResults.length === 0) {
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      const addedUserRole = userResults[0].role;
+      const isAdmin = addedUserRole === ROLES.ADMIN;
+
+      // Force 'update' permission for admins (they always have it)
+      const permissionToAssign = isAdmin ? "update" : finalPermission;
+
+      // Add user to area
+      const sql = `
+        INSERT INTO user_area_mapping (user_id, area_id, permission, assigned_by)
+        VALUES (?, ?, ?, ?)
+      `;
+
+      db.query(
+        sql,
+        [userId, areaId, permissionToAssign, managerId],
+        async (err2) => {
+          if (err2) {
+            if (err2.code === "ER_DUP_ENTRY") {
+              return res.status(409).json({
+                error: "User is already assigned to this area",
+              });
+            }
+            console.error("❌ Add user to area error:", err2);
+            return res.status(500).json({ error: "Database error" });
           }
-          console.error("❌ Add user to area error:", err2);
-          return res.status(500).json({ error: "Database error" });
-        }
 
-        try {
-          await writeAudit({
-            action: "area_user_added",
-            entity_type: "user_area",
-            entity_id: userId,
-            actor,
-            ip,
-            details: {
-              userId,
-              areaId,
-              permission: finalPermission,
-              addedBy: managerId,
-            },
+          try {
+            await writeAudit({
+              action: "area_user_added",
+              entity_type: "user_area",
+              entity_id: userId,
+              actor,
+              ip,
+              details: {
+                userId,
+                areaId,
+                permission: permissionToAssign,
+                addedBy: managerId,
+              },
+            });
+          } catch (_) {}
+
+          res.status(201).json({
+            message: "User added to area",
+            userId,
+            areaId,
+            permission: permissionToAssign,
           });
-        } catch (_) {}
-
-        res.status(201).json({
-          message: "User added to area",
-          userId,
-          areaId,
-          permission: finalPermission,
-        });
-      },
-    );
+        },
+      );
+    });
   });
 });
 
