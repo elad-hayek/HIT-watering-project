@@ -403,6 +403,26 @@ body.dark-mode .results-header label {
   white-space: nowrap;
 }
 
+.permission-note {
+  display: block;
+  font-size: 0.85em;
+  color: #666;
+  font-weight: 400;
+  margin-top: 8px;
+  line-height: 1.4;
+  width: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  .permission-note {
+    color: #aaa;
+  }
+}
+
+body.dark-mode .permission-note {
+  color: #aaa;
+}
+
 .permission-select {
   padding: 10px 12px;
   border: 2px solid #ddd;

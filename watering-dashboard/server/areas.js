@@ -472,10 +472,10 @@ router.put("/:id/users/:userId", requireAuth, (req, res) => {
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
   // Validate permission
-  const validPermissions = ["read", "update"];
+  const validPermissions = ["read", "update", "admin"];
   if (!validPermissions.includes(permission)) {
     return res.status(400).json({
-      error: "Invalid permission. Must be 'read' or 'update'",
+      error: "Invalid permission. Must be 'read', 'update', or 'admin'",
     });
   }
 
@@ -747,7 +747,7 @@ router.post("/:id/users", requireAuth, (req, res) => {
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
   // Validate permission
-  const validPermissions = ["read", "update"];
+  const validPermissions = ["read", "update", "admin"];
   const finalPermission = validPermissions.includes(permission)
     ? permission
     : "read";

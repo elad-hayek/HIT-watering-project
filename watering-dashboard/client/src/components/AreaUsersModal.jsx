@@ -206,12 +206,21 @@ export default function AreaUsersModal({ area, onClose, user }) {
     const map = {
       read: "📖 Read Only",
       update: "✏️ Editor",
+      admin: "👨‍💼 Manager",
     };
     return map[permission] || permission;
   };
 
   const getPermissionColor = (permission) => {
-    return permission === "update" ? "#27ae60" : "#3498db";
+    switch (permission) {
+      case "update":
+        return "#27ae60"; // Green for Editor
+      case "admin":
+        return "#e74c3c"; // Red for Manager
+      case "read":
+      default:
+        return "#3498db"; // Blue for Read Only
+    }
   };
 
   return (
@@ -277,8 +286,14 @@ export default function AreaUsersModal({ area, onClose, user }) {
                     {!searching && searchResults.length > 0 && (
                       <div className="search-results">
                         <div className="results-header">
-                          <label>
-                            Default Permission:
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                            }}
+                          >
+                            <span>Default Permission:</span>
                             <select
                               value={selectedPermission}
                               onChange={(e) =>
@@ -286,10 +301,15 @@ export default function AreaUsersModal({ area, onClose, user }) {
                               }
                               className="permission-select"
                             >
-                              <option value="read">📖 Read Only</option>
-                              <option value="update">✏️ Editor</option>
+                              <option value="read">Read Only</option>
+                              <option value="update">Editor</option>
+                              <option value="admin">Manager</option>
                             </select>
-                          </label>
+                          </div>
+                          <small className="permission-note">
+                            Note: System admins will automatically be assigned
+                            Editor or Manager permission regardless of selection
+                          </small>
                         </div>
                         {searchResults.map((u) => (
                           <div key={u.id} className="search-result-item">
@@ -371,38 +391,30 @@ export default function AreaUsersModal({ area, onClose, user }) {
                           </div>
                         </div>
 
-                        <div className="user-col-permission">
-                          <select
-                            value={u.permission}
-                            onChange={(e) =>
-                              handleUpdatePermission(u.id, e.target.value)
-                            }
-                            className="permission-select"
-                            disabled={updatingUser === u.id || u.isFixedRole}
-                            style={{
-                              backgroundColor: getPermissionColor(u.permission),
-                              color: "white",
-                              opacity: u.isFixedRole ? 0.7 : 1,
-                              cursor: u.isFixedRole ? "not-allowed" : "pointer",
-                            }}
-                            title={
-                              u.isFixedRole
-                                ? "Permission is fixed for this user"
-                                : ""
-                            }
-                          >
-                            <option value="read">📖 Read Only</option>
-                            <option value="update">✏️ Editor</option>
-                          </select>
-                          {u.isFixedRole && (
-                            <span
-                              className="fixed-role-badge"
-                              title="Fixed role - cannot be changed"
+                        {!u.isFixedRole && (
+                          <div className="user-col-permission">
+                            <select
+                              value={u.permission}
+                              onChange={(e) =>
+                                handleUpdatePermission(u.id, e.target.value)
+                              }
+                              className="permission-select"
+                              disabled={updatingUser === u.id}
+                              style={{
+                                backgroundColor: getPermissionColor(
+                                  u.permission,
+                                ),
+                                color: "white",
+                                cursor: "pointer",
+                              }}
+                              title="Click to change user permission"
                             >
-                              🔒 Fixed
-                            </span>
-                          )}
-                        </div>
+                              <option value="read">Read Only</option>
+                              <option value="update">Editor</option>
+                              <option value="admin">Manager</option>
+                            </select>
+                          </div>
+                        )}
 
                         <div className="user-col-actions">
                           {u.id !== user.id ? (
