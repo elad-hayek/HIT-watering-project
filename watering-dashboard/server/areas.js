@@ -500,11 +500,12 @@ router.put("/:id/users/:userId", requireAuth, (req, res) => {
   });
 
   function continueUpdate() {
-    // Validate permission - must be 'read' or 'update'
-    const validPermissions = ["read", "update"];
+    // Validate permission - must be 'read', 'update', or 'area_manager'
+    const validPermissions = ["read", "update", "area_manager"];
     if (!validPermissions.includes(permission)) {
       return res.status(400).json({
-        error: "Invalid permission. Must be 'read' or 'update'",
+        error:
+          "Invalid permission. Must be 'read', 'update', or 'area_manager'",
       });
     }
 
@@ -806,8 +807,8 @@ router.post("/:id/users", requireAuth, (req, res) => {
   });
 
   function continueAddUser() {
-    // Validate permission - must be 'read' or 'update'
-    const validPermissions = ["read", "update"];
+    // Validate permission - must be 'read', 'update', or 'area_manager'
+    const validPermissions = ["read", "update", "area_manager"];
     const finalPermission = validPermissions.includes(permission)
       ? permission
       : "read";

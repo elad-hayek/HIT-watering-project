@@ -301,7 +301,7 @@ router.post(
       req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
     // Validate permission
-    const validPermissions = ["read", "update"];
+    const validPermissions = ["read", "update", "area_manager"];
     const finalPermission = validPermissions.includes(permission)
       ? permission
       : "read";

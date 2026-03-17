@@ -66,14 +66,15 @@ export function getPermissionBadgeClass(permission) {
 
 /**
  * Check if a user can manage area users
- * Only global admins can manage users
+ * Admins and area managers can manage users
  * @param {string} globalRole - User's global role
  * @param {string} areaPermission - User's permission level for that specific area
  * @returns {boolean}
  */
 export function canManageAreaUsers(globalRole, areaPermission) {
-  // Only global admin can manage users
-  return globalRole === "admin";
+  // Global admin can manage users in any area
+  // Area managers can manage users in their areas
+  return globalRole === "admin" || areaPermission === "area_manager";
 }
 
 /**

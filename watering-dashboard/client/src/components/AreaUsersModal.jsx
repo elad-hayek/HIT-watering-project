@@ -211,6 +211,7 @@ export default function AreaUsersModal({ area, onClose, user }) {
     const map = {
       read: "📖 Read Only",
       update: "✏️ Editor",
+      area_manager: "👨‍💼 Area Manager",
       admin: "🔑 Admin",
     };
     return map[permission] || permission;
@@ -220,6 +221,8 @@ export default function AreaUsersModal({ area, onClose, user }) {
     switch (permission) {
       case "admin":
         return "#c0392b"; // Red for Admin
+      case "area_manager":
+        return "#e67e22"; // Orange for Area Manager
       case "update":
         return "#27ae60"; // Green for Editor
       case "read":
@@ -322,6 +325,9 @@ export default function AreaUsersModal({ area, onClose, user }) {
                             >
                               <option value="read">📖 Read Only</option>
                               <option value="update">✏️ Editor</option>
+                              <option value="area_manager">
+                                👨‍💼 Area Manager
+                              </option>
                             </select>
                           </div>
                           <small className="permission-note">
@@ -425,6 +431,9 @@ export default function AreaUsersModal({ area, onClose, user }) {
                             >
                               <option value="read">📖 Read Only</option>
                               <option value="update">✏️ Editor</option>
+                              <option value="area_manager">
+                                👨‍💼 Area Manager
+                              </option>
                             </select>
                           </div>
                         )}
