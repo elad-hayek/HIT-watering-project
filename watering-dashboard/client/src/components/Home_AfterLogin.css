@@ -583,12 +583,12 @@
 }
 
 .area-permission.permission-area_manager {
-  background: #9c27b0;
+  background: #e67e22;
   color: white;
 }
 
 [data-theme="dark"] .area-permission.permission-area_manager {
-  background: #7b1fa2;
+  background: #cc6819;
 }
 
 .area-info {
