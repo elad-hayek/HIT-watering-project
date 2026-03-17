@@ -335,9 +335,7 @@ export default function AreaUsersModal({ area, onClose, user }) {
                               <div className="user-name">
                                 {u.name} {u.lastname}
                               </div>
-                              <div className="user-meta">
-                                ID: {u.username} | Role: {u.role}
-                              </div>
+                              <div className="user-meta">ID: {u.username}</div>
                             </div>
                             <button
                               className="btn btn-sm btn-success"
@@ -404,9 +402,7 @@ export default function AreaUsersModal({ area, onClose, user }) {
                               <span className="current-user">(You)</span>
                             )}
                           </div>
-                          <div className="user-meta">
-                            {u.username} • {u.role}
-                          </div>
+                          <div className="user-meta">{u.username}</div>
                         </div>
 
                         {!u.isFixedRole && (

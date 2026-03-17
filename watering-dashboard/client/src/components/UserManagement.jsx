@@ -6,6 +6,7 @@ export default function UserManagement({ user }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [togglingRole, setTogglingRole] = useState(null);
+  const [deletingUser, setDeletingUser] = useState(null);
   const [message, setMessage] = useState("");
   const [hasAttemptedSearch, setHasAttemptedSearch] = useState(false);
 
@@ -113,6 +114,53 @@ export default function UserManagement({ user }) {
     }
   };
 
+  const handleDeleteUser = async (userId) => {
+    const currentUser = users.find((u) => u.id === userId);
+    if (!currentUser) return;
+
+    if (
+      !window.confirm(
+        `Delete user ${currentUser.name} ${currentUser.lastname}? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setDeletingUser(userId);
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/users/${userId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": user.id,
+            "x-user-role": user.role,
+            "x-user": user.username,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete user");
+      }
+
+      // Remove the user from the list
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setMessage(
+        `User ${currentUser.name} ${currentUser.lastname} has been deleted`,
+      );
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      setMessage("Error deleting user: " + err.message);
+    } finally {
+      setDeletingUser(null);
+    }
+  };
+
   const getRoleColor = (role) => {
     switch (role) {
       case "admin":
@@ -188,7 +236,6 @@ export default function UserManagement({ user }) {
             <div className="table-header">
               <div className="col-id">ID</div>
               <div className="col-name">Name</div>
-              <div className="col-role">Role</div>
               <div className="col-actions">Actions</div>
             </div>
 
@@ -203,40 +250,48 @@ export default function UserManagement({ user }) {
                   </div>
                   {u.title && <span className="user-subtitle">{u.title}</span>}
                 </div>
-                <div className="col-role">
-                  <span
-                    className="role-badge"
-                    style={{ backgroundColor: getRoleColor(u.role) }}
-                  >
-                    {getRoleLabel(u.role)}
-                  </span>
-                </div>
                 <div className="col-actions">
                   {u.id !== user.id ? (
-                    <button
-                      onClick={() => handleToggleRole(u.id)}
-                      disabled={togglingRole === u.id}
-                      className={`btn-role-toggle ${u.role === "admin" ? "btn-remove-admin" : "btn-make-admin"}`}
-                      title={
-                        u.role === "admin"
-                          ? "Remove administrator"
-                          : "Make administrator"
-                      }
-                    >
-                      {togglingRole === u.id ? (
-                        <>
-                          <span className="spinner"></span> Updating...
-                        </>
-                      ) : u.role === "admin" ? (
-                        <>
-                          <i className="fas fa-shield-alt"></i> Remove Admin
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-crown"></i> Make Admin
-                        </>
-                      )}
-                    </button>
+                    <div className="action-buttons">
+                      <button
+                        onClick={() => handleToggleRole(u.id)}
+                        disabled={togglingRole === u.id}
+                        className={`btn-action btn-role-toggle ${u.role === "admin" ? "btn-remove-admin" : "btn-make-admin"}`}
+                        title={
+                          u.role === "admin"
+                            ? "Remove administrator"
+                            : "Make administrator"
+                        }
+                      >
+                        {togglingRole === u.id ? (
+                          <>
+                            <span className="spinner"></span> Updating...
+                          </>
+                        ) : u.role === "admin" ? (
+                          <>
+                            <i className="fas fa-shield-alt"></i> Remove Admin
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-crown"></i> Make Admin
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(u.id)}
+                        disabled={deletingUser === u.id}
+                        className="btn-action btn-delete-user"
+                        title="Delete user"
+                      >
+                        {deletingUser === u.id ? (
+                          <>
+                            <span className="spinner"></span>
+                          </>
+                        ) : (
+                          <i className="fas fa-trash"></i>
+                        )}
+                      </button>
+                    </div>
                   ) : (
                     <span className="current-user" title="This is you">
                       <i className="fas fa-user"></i> (You)

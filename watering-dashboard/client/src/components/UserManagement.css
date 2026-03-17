@@ -154,7 +154,7 @@
 .table-header,
 .table-row {
   display: grid;
-  grid-template-columns: 120px 200px 150px 150px;
+  grid-template-columns: 120px 1fr 200px;
   gap: 15px;
   align-items: center;
   padding: 15px 0;
@@ -194,12 +194,8 @@
   min-width: 200px;
 }
 
-.col-role {
-  min-width: 150px;
-}
-
 .col-actions {
-  min-width: 150px;
+  min-width: 200px;
 }
 
 .id-badge {
@@ -233,6 +229,83 @@
   font-size: 12px;
   font-weight: 600;
   text-transform: capitalize;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-action {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-role-toggle,
+.btn-delete-user {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-make-admin {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-make-admin:hover:not(:disabled) {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.btn-remove-admin {
+  background-color: #e67e22;
+  color: white;
+}
+
+.btn-remove-admin:hover:not(:disabled) {
+  background-color: #d35400;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+}
+
+.btn-delete-user {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-delete-user:hover:not(:disabled) {
+  background-color: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-role-toggle:disabled,
+.btn-delete-user:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .role-select {
