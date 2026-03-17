@@ -429,4 +429,66 @@ router.get("/:userId/areas", (req, res) => {
   });
 });
 
+// DELETE /api/users/:id - Delete a user (Admin only)
+router.delete("/:id", requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const currentUserId = req.userId;
+  const actor = req.headers["x-user"] || "unknown";
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
+
+  // Check if admin is trying to delete themselves
+  if (currentUserId === parseInt(id)) {
+    return res
+      .status(400)
+      .json({ error: "You cannot delete your own account" });
+  }
+
+  // Get user details before deleting
+  const getUserSql = `SELECT username, name, lastname FROM users WHERE id = ? LIMIT 1`;
+
+  db.query(getUserSql, [id], (err, results) => {
+    if (err) {
+      console.error("❌ Get user DB error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const userData = results[0];
+
+    // Delete the user
+    const deleteSql = `DELETE FROM users WHERE id = ? LIMIT 1`;
+
+    db.query(deleteSql, [id], async (err2) => {
+      if (err2) {
+        console.error("❌ Delete user DB error:", err2);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      try {
+        await writeAudit({
+          action: "user_deleted",
+          entity_type: "user",
+          entity_id: id,
+          actor,
+          ip,
+          details: {
+            username: userData.username,
+            name: userData.name,
+            lastname: userData.lastname,
+            deletedBy: currentUserId,
+          },
+        });
+      } catch (_) {}
+
+      res.json({
+        message: "User deleted successfully",
+        userId: id,
+      });
+    });
+  });
+});
+
 module.exports = router;

@@ -5,20 +5,11 @@ export default function UserManagement({ user }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [updating, setUpdating] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [message, setMessage] = useState("");
-  const [selectedRole, setSelectedRole] = useState({});
 
-  // Role options that can be assigned based on user's role
-  const getRoleOptions = () => {
-    const allRoles = [
-      { value: "user", label: "User" },
-      { value: "area_manager", label: "Area Manager" },
-      { value: "admin", label: "Administrator" },
-    ];
-
-    return allRoles;
-  };
+  // Check if user is admin
+  const isAdmin = user?.role === "admin";
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -48,13 +39,6 @@ export default function UserManagement({ user }) {
 
       const data = await response.json();
       setUsers(data.users || []);
-
-      // Initialize selected roles with current roles
-      const initialRoles = {};
-      data.users.forEach((u) => {
-        initialRoles[u.id] = u.role;
-      });
-      setSelectedRole(initialRoles);
     } catch (err) {
       setMessage("Error searching users: " + err.message);
       setUsers([]);
@@ -63,66 +47,56 @@ export default function UserManagement({ user }) {
     }
   };
 
-  const handleRoleChange = (userId, newRole) => {
-    setSelectedRole((prev) => ({
-      ...prev,
-      [userId]: newRole,
-    }));
-  };
-
-  const handleUpdateRole = async (userId, newRole) => {
+  const handleDeleteUser = async (userId) => {
     const currentUser = users.find((u) => u.id === userId);
     if (!currentUser) return;
 
-    // Check if the user is trying to change their own role
+    // Check if the user is trying to delete themselves
     if (userId === user.id) {
-      setMessage("You cannot change your own role");
+      setMessage("You cannot delete your own account");
       return;
     }
 
-    setUpdating(userId);
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${currentUser.name} ${currentUser.lastname}?`,
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(userId);
     setMessage("");
 
     try {
       const response = await fetch(
-        `http://localhost:3000/api/users/${userId}/role`,
+        `http://localhost:3000/api/users/${userId}`,
         {
-          method: "PUT",
+          method: "DELETE",
           headers: {
             "Content-Type": "application/json",
             "x-user-id": user.id,
             "x-user-role": user.role,
             "x-user": user.username,
           },
-          body: JSON.stringify({ newRole }),
         },
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to update role");
+        throw new Error(error.error || "Failed to delete user");
       }
 
-      // Update the user in the list
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === userId
-            ? {
-                ...u,
-                role: newRole,
-              }
-            : u,
-        ),
-      );
-
+      // Remove the user from the list
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
       setMessage(
-        `Role updated for ${currentUser.name} ${currentUser.lastname}`,
+        `User ${currentUser.name} ${currentUser.lastname} has been deleted`,
       );
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
-      setMessage("Error updating role: " + err.message);
+      setMessage("Error deleting user: " + err.message);
     } finally {
-      setUpdating(null);
+      setDeleting(null);
     }
   };
 
@@ -148,11 +122,24 @@ export default function UserManagement({ user }) {
     return labels[role] || role;
   };
 
+  // Admin-only component
+  if (!isAdmin) {
+    return (
+      <div className="user-management-container">
+        <div className="admin-only-message">
+          <i className="fas fa-lock"></i>
+          <h2>Access Denied</h2>
+          <p>User management is only available to administrators</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="user-management-container">
       <div className="user-management-header">
-        <h2>User Management</h2>
-        <p>Search for users and manage their roles</p>
+        <h2>👥 User Management</h2>
+        <p>Manage users in the system (view and delete only)</p>
       </div>
 
       <form onSubmit={handleSearch} className="search-form">
@@ -191,8 +178,7 @@ export default function UserManagement({ user }) {
             <div className="table-header">
               <div className="col-id">ID</div>
               <div className="col-name">Name</div>
-              <div className="col-role">Current Role</div>
-              <div className="col-new-role">New Role</div>
+              <div className="col-role">Role</div>
               <div className="col-actions">Actions</div>
             </div>
 
@@ -215,39 +201,28 @@ export default function UserManagement({ user }) {
                     {getRoleLabel(u.role)}
                   </span>
                 </div>
-                <div className="col-new-role">
-                  <select
-                    value={selectedRole[u.id] || u.role}
-                    onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                    className="role-select"
-                    disabled={u.id === user.id}
-                  >
-                    {getRoleOptions().map((role) => (
-                      <option key={role.value} value={role.value}>
-                        {role.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
                 <div className="col-actions">
-                  {selectedRole[u.id] && selectedRole[u.id] !== u.role ? (
+                  {u.id !== user.id ? (
                     <button
-                      onClick={() => handleUpdateRole(u.id, selectedRole[u.id])}
-                      disabled={updating === u.id || u.id === user.id}
-                      className="btn-update"
+                      onClick={() => handleDeleteUser(u.id)}
+                      disabled={deleting === u.id}
+                      className="btn-delete"
+                      title="Delete user"
                     >
-                      {updating === u.id ? (
+                      {deleting === u.id ? (
                         <>
-                          <span className="spinner"></span> Updating...
+                          <span className="spinner"></span> Deleting...
                         </>
                       ) : (
                         <>
-                          <i className="fas fa-check"></i> Update
+                          <i className="fas fa-trash"></i> Delete
                         </>
                       )}
                     </button>
                   ) : (
-                    <span className="no-change">No change</span>
+                    <span className="current-user" title="This is you">
+                      <i className="fas fa-user"></i> (You)
+                    </span>
                   )}
                 </div>
               </div>
@@ -266,7 +241,7 @@ export default function UserManagement({ user }) {
       {!loading && users.length === 0 && !searchQuery && (
         <div className="empty-state">
           <i className="fas fa-users"></i>
-          <p>Search for users to manage their roles</p>
+          <p>Search for users to manage them</p>
         </div>
       )}
     </div>

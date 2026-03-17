@@ -5,6 +5,7 @@ import EditAreaModal from "./EditAreaModal";
 import AddPlantButton from "./AddPlantButton";
 import EditPlantModal from "./EditPlantModal";
 import AreaDetailMap from "./AreaDetailMap";
+import AreaUsersModal from "./AreaUsersModal";
 import { getStatusDisplay } from "../utils/statusMapping";
 import {
   hasUpdatePermission,
@@ -21,6 +22,8 @@ export default function HomeAfterLogin({ user }) {
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
   const [showEditPlantModal, setShowEditPlantModal] = useState(false);
   const [editingPlant, setEditingPlant] = useState(null);
+  const [showAreaUsersModal, setShowAreaUsersModal] = useState(false);
+  const [managingArea, setManagingArea] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mapCoordinates, setMapCoordinates] = useState(null);
 
@@ -114,6 +117,11 @@ export default function HomeAfterLogin({ user }) {
         console.error("Error deleting area:", err);
       }
     }
+  };
+
+  const handleManageAreaUsers = (area) => {
+    setManagingArea(area);
+    setShowAreaUsersModal(true);
   };
 
   const handleAddPlant = async () => {
@@ -228,14 +236,23 @@ export default function HomeAfterLogin({ user }) {
                 <h2>{selectedArea.name}</h2>
                 <div className="area-header-actions">
                   {hasUpdatePermission(selectedArea.permission) && (
-                    <AddPlantButton
-                      areaId={selectedArea.id}
-                      area={selectedArea}
-                      onPlantCreated={handleAddPlant}
-                      user={user}
-                      mapCoordinates={mapCoordinates}
-                      onMapCoordinatesUsed={() => setMapCoordinates(null)}
-                    />
+                    <>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => handleManageAreaUsers(selectedArea)}
+                        title="Manage users for this area"
+                      >
+                        <i className="fas fa-users"></i> Manage Users
+                      </button>
+                      <AddPlantButton
+                        areaId={selectedArea.id}
+                        area={selectedArea}
+                        onPlantCreated={handleAddPlant}
+                        user={user}
+                        mapCoordinates={mapCoordinates}
+                        onMapCoordinatesUsed={() => setMapCoordinates(null)}
+                      />
+                    </>
                   )}
                 </div>
               </div>
@@ -355,6 +372,17 @@ export default function HomeAfterLogin({ user }) {
           plant={editingPlant}
           onClose={() => setShowEditPlantModal(false)}
           onUpdate={handleUpdatePlant}
+          user={user}
+        />
+      )}
+
+      {showAreaUsersModal && managingArea && (
+        <AreaUsersModal
+          area={managingArea}
+          onClose={() => {
+            setShowAreaUsersModal(false);
+            setManagingArea(null);
+          }}
           user={user}
         />
       )}

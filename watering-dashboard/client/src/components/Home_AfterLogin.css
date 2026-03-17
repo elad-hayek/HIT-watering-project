@@ -464,6 +464,23 @@
   background: #555555;
 }
 
+.btn-secondary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5568d3;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: #7b8dd8;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background: #8a9ae0;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

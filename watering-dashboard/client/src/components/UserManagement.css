@@ -4,6 +4,30 @@
   padding: 20px;
 }
 
+.admin-only-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #95a5a6;
+}
+
+.admin-only-message i {
+  font-size: 3em;
+  margin-bottom: 20px;
+  display: block;
+  opacity: 0.4;
+}
+
+.admin-only-message h2 {
+  color: #34495e;
+  font-size: 1.8em;
+  margin-bottom: 10px;
+}
+
+.admin-only-message p {
+  color: #7f8c8d;
+  font-size: 1.05em;
+}
+
 .user-management-header {
   margin-bottom: 30px;
 }
@@ -130,7 +154,7 @@
 .table-header,
 .table-row {
   display: grid;
-  grid-template-columns: 120px 200px 150px 150px 150px;
+  grid-template-columns: 120px 200px 150px 150px;
   gap: 15px;
   align-items: center;
   padding: 15px 0;
@@ -161,10 +185,6 @@
 }
 
 .col-role {
-  min-width: 150px;
-}
-
-.col-new-role {
   min-width: 150px;
 }
 
@@ -251,6 +271,37 @@
 .btn-update:disabled {
   background-color: #bdc3c7;
   cursor: not-allowed;
+}
+
+.btn-delete {
+  padding: 8px 12px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.3s;
+}
+
+.btn-delete:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.btn-delete:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.current-user {
+  color: #3498db;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 .spinner {
