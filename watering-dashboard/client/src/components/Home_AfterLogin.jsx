@@ -10,6 +10,8 @@ import { getStatusDisplay } from "../utils/statusMapping";
 import {
   hasUpdatePermission,
   getPermissionDisplay,
+  canManageAreaUsers,
+  canDeleteArea,
 } from "../utils/permissions";
 
 export default function HomeAfterLogin({ user }) {
@@ -210,7 +212,7 @@ export default function HomeAfterLogin({ user }) {
                     </div>
                   </div>
                   <div className="area-actions">
-                    {hasUpdatePermission(area.permission) && (
+                    {canDeleteArea(user.role, area.permission) && (
                       <button
                         className="btn-icon btn-danger"
                         title="Delete area"
@@ -235,24 +237,24 @@ export default function HomeAfterLogin({ user }) {
               <div className="area-header">
                 <h2>{selectedArea.name}</h2>
                 <div className="area-header-actions">
+                  {canManageAreaUsers(user.role, selectedArea.permission) && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleManageAreaUsers(selectedArea)}
+                      title="Manage users for this area"
+                    >
+                      <i className="fas fa-users"></i> Manage Users
+                    </button>
+                  )}
                   {hasUpdatePermission(selectedArea.permission) && (
-                    <>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => handleManageAreaUsers(selectedArea)}
-                        title="Manage users for this area"
-                      >
-                        <i className="fas fa-users"></i> Manage Users
-                      </button>
-                      <AddPlantButton
-                        areaId={selectedArea.id}
-                        area={selectedArea}
-                        onPlantCreated={handleAddPlant}
-                        user={user}
-                        mapCoordinates={mapCoordinates}
-                        onMapCoordinatesUsed={() => setMapCoordinates(null)}
-                      />
-                    </>
+                    <AddPlantButton
+                      areaId={selectedArea.id}
+                      area={selectedArea}
+                      onPlantCreated={handleAddPlant}
+                      user={user}
+                      mapCoordinates={mapCoordinates}
+                      onMapCoordinatesUsed={() => setMapCoordinates(null)}
+                    />
                   )}
                 </div>
               </div>

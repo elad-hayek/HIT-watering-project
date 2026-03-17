@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./AreaUsersModal.css";
+import { canManageAreaUsers } from "../utils/permissions";
 
 export default function AreaUsersModal({ area, onClose, user }) {
   const [areaUsers, setAreaUsers] = useState([]);
@@ -202,21 +203,29 @@ export default function AreaUsersModal({ area, onClose, user }) {
     }
   };
 
+  // Check if current user can manage area users (admin or area_manager only)
+  const canManageCurrentArea = () => {
+    return canManageAreaUsers(user.role, area.permission);
+  };
+
   const getPermissionDisplay = (permission) => {
     const map = {
       read: "📖 Read Only",
       update: "✏️ Editor",
-      admin: "👨‍💼 Manager",
+      area_manager: "👨‍💼 Area Manager",
+      admin: "🔑 Admin",
     };
     return map[permission] || permission;
   };
 
   const getPermissionColor = (permission) => {
     switch (permission) {
+      case "admin":
+        return "#c0392b"; // Red for Admin
+      case "area_manager":
+        return "#e67e22"; // Orange for Area Manager
       case "update":
         return "#27ae60"; // Green for Editor
-      case "admin":
-        return "#e74c3c"; // Red for Manager
       case "read":
       default:
         return "#3498db"; // Blue for Read Only
@@ -245,7 +254,21 @@ export default function AreaUsersModal({ area, onClose, user }) {
         )}
 
         <div className="modal-body">
-          {loading ? (
+          {!canManageCurrentArea() ? (
+            <div
+              className="loading-state"
+              style={{ color: "#e74c3c", textAlign: "center", padding: "20px" }}
+            >
+              <i
+                className="fas fa-lock"
+                style={{ fontSize: "48px", marginBottom: "10px" }}
+              ></i>
+              <p>You don't have permission to manage area users.</p>
+              <p style={{ fontSize: "12px", color: "#666" }}>
+                Only admins and area managers can manage users.
+              </p>
+            </div>
+          ) : loading ? (
             <div className="loading-state">
               <div className="loader"></div>
               <p>Loading users...</p>
@@ -301,14 +324,16 @@ export default function AreaUsersModal({ area, onClose, user }) {
                               }
                               className="permission-select"
                             >
-                              <option value="read">Read Only</option>
-                              <option value="update">Editor</option>
-                              <option value="admin">Manager</option>
+                              <option value="read">📖 Read Only</option>
+                              <option value="update">✏️ Editor</option>
+                              <option value="area_manager">
+                                👨‍💼 Area Manager
+                              </option>
                             </select>
                           </div>
                           <small className="permission-note">
-                            Note: System admins will automatically be assigned
-                            Editor or Manager permission regardless of selection
+                            Note: System admins cannot be assigned area-level
+                            permissions
                           </small>
                         </div>
                         {searchResults.map((u) => (
@@ -409,9 +434,11 @@ export default function AreaUsersModal({ area, onClose, user }) {
                               }}
                               title="Click to change user permission"
                             >
-                              <option value="read">Read Only</option>
-                              <option value="update">Editor</option>
-                              <option value="admin">Manager</option>
+                              <option value="read">📖 Read Only</option>
+                              <option value="update">✏️ Editor</option>
+                              <option value="area_manager">
+                                👨‍💼 Area Manager
+                              </option>
                             </select>
                           </div>
                         )}
