@@ -466,11 +466,18 @@
   gap: 4px;
   flex: 0 0 auto;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .btn-sm {
-  padding: 2px 4px;
-  font-size: 0.65em;
+  padding: 1px 2px;
+  font-size: 0.3em;
+  gap: 1px;
+  line-height: 1;
+}
+
+.btn-sm i {
+  font-size: 1em;
 }
 
 .btn-primary {
