@@ -7,7 +7,7 @@ param(
     [string]$DatabaseName = "watering_db",
     [string]$User = "root",
     [string]$Password = "",
-    [string]$Host = "localhost"
+    [string]$HostName = "localhost"
 )
 
 # Colors for output
@@ -30,12 +30,12 @@ function Write-Header {
 
 function Write-Success {
     param([string]$Message)
-    Write-Host "✓ $Message" -ForegroundColor $Green
+    Write-Host "[OK] $Message" -ForegroundColor $Green
 }
 
-function Write-Error {
+function Write-ErrorMsg {
     param([string]$Message)
-    Write-Host "✗ $Message" -ForegroundColor $Red
+    Write-Host "[ERROR] $Message" -ForegroundColor $Red
 }
 
 function Write-Info {
@@ -48,13 +48,13 @@ Write-Header "Database Migration Runner"
 
 Write-Host "Database: $DatabaseName" -ForegroundColor $Blue
 Write-Host "User: $User" -ForegroundColor $Blue
-Write-Host "Host: $Host" -ForegroundColor $Blue
+Write-Host "Host: $HostName" -ForegroundColor $Blue
 Write-Host "Migrations Directory: $MigrationsDir" -ForegroundColor $Blue
 Write-Host ""
 
 # Check if migrations directory exists
 if (-not (Test-Path $MigrationsDir)) {
-    Write-Error "Migrations directory not found: $MigrationsDir"
+    Write-ErrorMsg "Migrations directory not found: $MigrationsDir"
     exit 1
 }
 
@@ -62,7 +62,7 @@ if (-not (Test-Path $MigrationsDir)) {
 $Migrations = Get-ChildItem -Path $MigrationsDir -Filter "*.sql" | Sort-Object Name
 
 if ($Migrations.Count -eq 0) {
-    Write-Error "No migration files found in $MigrationsDir"
+    Write-ErrorMsg "No migration files found in $MigrationsDir"
     exit 1
 }
 
@@ -74,9 +74,6 @@ if ([string]::IsNullOrEmpty($Password)) {
     $SecurePassword = Read-Host "Enter MySQL password for user '$User'" -AsSecureString
     $Password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($SecurePassword))
 }
-
-# Prepare MySQL connection
-$ConnectionString = "--host=$Host --user=$User --password=$Password --database=$DatabaseName"
 
 # Run migrations
 $SuccessCount = 0
@@ -90,19 +87,24 @@ for ($i = 0; $i -lt $Migrations.Count; $i++) {
     Write-Info "[$MigrationNumber/$TotalCount] Running: $($Migration.Name)"
     
     try {
-        # Run the migration
-        $Output = mysql $ConnectionString.Split() -le $Migration.FullName 2>&1
+        # For the first migration, don't specify database (it will create it)
+        # For subsequent migrations, specify the database
+        if ($i -eq 0) {
+            $Output = Get-Content $Migration.FullName | & mysql --host=$HostName --user=$User --password=$Password 2>&1
+        } else {
+            $Output = Get-Content $Migration.FullName | & mysql --host=$HostName --user=$User --password=$Password --database=$DatabaseName 2>&1
+        }
         
         if ($LASTEXITCODE -eq 0) {
             Write-Success "Completed: $($Migration.Name)"
             $SuccessCount++
         } else {
-            Write-Error "Failed: $($Migration.Name)"
+            Write-ErrorMsg "Failed: $($Migration.Name)"
             Write-Host $Output -ForegroundColor $Red
             $FailureCount++
         }
     } catch {
-        Write-Error "Exception running $($Migration.Name): $_"
+        Write-ErrorMsg "Exception running $($Migration.Name): $_"
         $FailureCount++
     }
     
@@ -116,7 +118,7 @@ Write-Host "Failed: $FailureCount" -ForegroundColor $(if ($FailureCount -gt 0) {
 
 if ($FailureCount -gt 0) {
     Write-Host ""
-    Write-Error "Some migrations failed!"
+    Write-ErrorMsg "Some migrations failed!"
     exit 1
 } else {
     Write-Host ""
