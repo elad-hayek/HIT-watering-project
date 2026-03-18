@@ -22,11 +22,6 @@ export default function Home() {
               <h3>Plant Management</h3>
               <p>Track plants, watering schedules, and health status</p>
             </div>
-            <div className="feature">
-              <i className="fas fa-chart-bar"></i>
-              <h3>Analytics</h3>
-              <p>Monitor watering patterns and plant health over time</p>
-            </div>
           </div>
 
           <div className="cta-buttons">
