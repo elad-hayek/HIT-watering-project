@@ -233,7 +233,6 @@ export default function UserManagement({ user }) {
                   <div className="user-name">
                     {u.name} {u.lastname}
                   </div>
-                  {u.title && <span className="user-subtitle">{u.title}</span>}
                 </div>
                 <div className="col-actions">
                   {u.id !== user.id ? (
