@@ -156,6 +156,51 @@
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
+/* Status select styling */
+.form-group select[value="healthy"],
+select:has(option[value="healthy"]:checked) {
+  border-color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.08);
+}
+
+[data-theme="dark"] .form-group select[value="healthy"],
+[data-theme="dark"] select:has(option[value="healthy"]:checked) {
+  background-color: rgba(76, 175, 80, 0.15);
+}
+
+.form-group select[value="needs_water"],
+select:has(option[value="needs_water"]:checked) {
+  border-color: #ff9800;
+  background-color: rgba(255, 152, 0, 0.08);
+}
+
+[data-theme="dark"] .form-group select[value="needs_water"],
+[data-theme="dark"] select:has(option[value="needs_water"]:checked) {
+  background-color: rgba(255, 152, 0, 0.15);
+}
+
+.form-group select[value="diseased"],
+select:has(option[value="diseased"]:checked) {
+  border-color: #f44336;
+  background-color: rgba(244, 67, 54, 0.08);
+}
+
+[data-theme="dark"] .form-group select[value="diseased"],
+[data-theme="dark"] select:has(option[value="diseased"]:checked) {
+  background-color: rgba(244, 67, 54, 0.15);
+}
+
+.form-group select[value="dormant"],
+select:has(option[value="dormant"]:checked) {
+  border-color: #9e9e9e;
+  background-color: rgba(158, 158, 158, 0.08);
+}
+
+[data-theme="dark"] .form-group select[value="dormant"],
+[data-theme="dark"] select:has(option[value="dormant"]:checked) {
+  background-color: rgba(158, 158, 158, 0.15);
+}
+
 .error-message {
   background: #fee;
   color: #c33;
