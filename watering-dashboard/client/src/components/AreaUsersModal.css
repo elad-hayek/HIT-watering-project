@@ -980,3 +980,24 @@ body.dark-mode .fixed-role-badge {
   background: #3a3a4a;
   color: #aaa;
 }
+/* Select dropdown styling for dark mode */
+[data-theme="dark"] .permission-select option,
+body.dark-mode .permission-select option,
+body.dark-mode .user-col-permission select option {
+  background: #3a3a3a;
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .permission-select option:hover,
+body.dark-mode .permission-select option:hover,
+body.dark-mode .user-col-permission select option:hover {
+  background: #4caf50;
+  color: #1a1a1a;
+}
+
+[data-theme="dark"] .permission-select option:checked,
+body.dark-mode .permission-select option:checked,
+body.dark-mode .user-col-permission select option:checked {
+  background: #4caf50;
+  color: #1a1a1a;
+}

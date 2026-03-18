@@ -262,6 +262,22 @@
   cursor: not-allowed;
 }
 
+/* Select dropdown styling for dark mode */
+[data-theme="dark"] .form-group select option {
+  background: #3a3a3a;
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .form-group select option:hover {
+  background: #4caf50;
+  color: #1a1a1a;
+}
+
+[data-theme="dark"] .form-group select option:checked {
+  background: #4caf50;
+  color: #1a1a1a;
+}
+
 @media (max-width: 768px) {
   .modal-content {
     width: 95%;

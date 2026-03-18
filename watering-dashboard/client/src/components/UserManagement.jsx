@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./UserManagement.css";
 import { API_BASE_URL } from "../config";
 
@@ -156,17 +156,7 @@ export default function UserManagement({ user }) {
     }
   };
 
-  const getRoleColor = (role) => {
-    switch (role) {
-      case "admin":
-        return "#e74c3c";
-      case "user":
-        return "#3498db";
-      default:
-        return "#95a5a6";
-    }
-  };
-
+  // eslint-disable-next-line no-unused-vars
   const getRoleLabel = (role) => {
     const labels = {
       user: "User",

@@ -10,12 +10,11 @@ export default function AddAreaButton({ onAreaCreated, user }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [drawnShape, setDrawnShape] = useState(null);
-  const [mapInitialized, setMapInitialized] = useState(false);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const drawnItemsRef = useRef(null);
 
-  // Initialize map when modal opens or type changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (showModal) {
       document.documentElement.setAttribute("data-add-area-modal-open", "true");
@@ -28,7 +27,6 @@ export default function AddAreaButton({ onAreaCreated, user }) {
         if (mapInstanceRef.current) {
           mapInstanceRef.current.remove();
           mapInstanceRef.current = null;
-          setMapInitialized(false);
         }
         // Reinitialize with new type
         initializeMap();
@@ -36,7 +34,7 @@ export default function AddAreaButton({ onAreaCreated, user }) {
     } else {
       document.documentElement.removeAttribute("data-add-area-modal-open");
     }
-  }, [showModal, type]);
+  }, [showModal, type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initializeMap = () => {
     try {
@@ -153,7 +151,6 @@ export default function AddAreaButton({ onAreaCreated, user }) {
       });
 
       mapInstanceRef.current = map;
-      setMapInitialized(true);
     } catch (e) {
       console.error("Map initialization error:", e);
       setError("Could not initialize map: " + e.message);
@@ -163,7 +160,6 @@ export default function AddAreaButton({ onAreaCreated, user }) {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setMapInitialized(false);
     setDrawnShape(null);
     setError("");
     if (mapInstanceRef.current) {

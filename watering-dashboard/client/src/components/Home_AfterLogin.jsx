@@ -18,10 +18,9 @@ export default function HomeAfterLogin({ user }) {
   const [areas, setAreas] = useState([]);
   const [plants, setPlants] = useState([]);
   const [selectedArea, setSelectedArea] = useState(null);
-  const [showNewAreaModal, setShowNewAreaModal] = useState(false);
   const [showEditAreaModal, setShowEditAreaModal] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [editingArea, setEditingArea] = useState(null);
-  const [showAddPlantModal, setShowAddPlantModal] = useState(false);
   const [showEditPlantModal, setShowEditPlantModal] = useState(false);
   const [editingPlant, setEditingPlant] = useState(null);
   const [showAreaUsersModal, setShowAreaUsersModal] = useState(false);
@@ -29,9 +28,10 @@ export default function HomeAfterLogin({ user }) {
   const [loading, setLoading] = useState(true);
   const [mapCoordinates, setMapCoordinates] = useState(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadAreas();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAreas = async () => {
     try {
@@ -74,12 +74,6 @@ export default function HomeAfterLogin({ user }) {
 
   const handleNewArea = async () => {
     await loadAreas();
-    setShowNewAreaModal(false);
-  };
-
-  const handleEditArea = (area) => {
-    setEditingArea(area);
-    setShowEditAreaModal(true);
   };
 
   const handleUpdateArea = async () => {
@@ -125,7 +119,6 @@ export default function HomeAfterLogin({ user }) {
 
   const handleAddPlant = async () => {
     loadPlants(selectedArea.id);
-    setShowAddPlantModal(false);
   };
 
   const handleEditPlant = (plant) => {

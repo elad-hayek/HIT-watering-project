@@ -16,7 +16,9 @@ export const getApiUrl = (endpoint) => {
   return `${API_BASE_URL}${cleanEndpoint}`;
 };
 
-export default {
+const config = {
   API_BASE_URL,
   getApiUrl,
 };
+
+export default config;

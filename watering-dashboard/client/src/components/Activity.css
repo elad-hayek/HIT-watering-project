@@ -425,6 +425,22 @@
   padding: 2rem;
 }
 
+/* Select dropdown styling for dark mode */
+[data-theme="dark"] .filter-select option {
+  background: #3a3a3a;
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .filter-select option:hover {
+  background: #4caf50;
+  color: #1a1a1a;
+}
+
+[data-theme="dark"] .filter-select option:checked {
+  background: #4caf50;
+  color: #1a1a1a;
+}
+
 [data-theme="dark"] .activity-access-denied {
   color: #999;
 }

@@ -65,7 +65,7 @@ export default function Activity({ user }) {
         setLoading(false);
       }
     },
-    [user.username, filterUser, filterAction],
+    [user.username, user.id, user.role, filterUser, filterAction],
   );
 
   // Fetch available users and actions for filters
@@ -90,14 +90,14 @@ export default function Activity({ user }) {
     };
 
     fetchFilterOptions();
-  }, [user.username]);
+  }, [user.username, user.id, user.role]);
 
   // Initial load
   useEffect(() => {
     setLogs([]);
     setHasMore(true);
     fetchLogs(0);
-  }, [filterUser, filterAction]);
+  }, [filterUser, filterAction, fetchLogs]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -120,9 +120,10 @@ export default function Activity({ user }) {
       observer.observe(observerTarget.current);
     }
 
+    const currentTarget = observerTarget.current;
     return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current);
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
       }
     };
   }, [hasMore, loading, logs.length, fetchLogs]);

@@ -167,7 +167,7 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
         return () => clearTimeout(timer);
       }
     }
-  }, [area, plants]);
+  }, [area, plants, onMapClick]);
 
   return (
     <div className="area-detail-map">

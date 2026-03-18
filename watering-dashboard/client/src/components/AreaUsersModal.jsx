@@ -18,8 +18,27 @@ export default function AreaUsersModal({ area, onClose, user }) {
 
   // Load area users on mount
   useEffect(() => {
-    loadAreaUsers();
-  }, [area.id]);
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE_URL}/api/areas/${area.id}/users`, {
+          headers: {
+            "x-user-id": user.id,
+            "x-user-role": user.role,
+            "x-user": user.username,
+          },
+        });
+        const data = await res.json();
+        setAreaUsers(data.users || []);
+      } catch (err) {
+        console.error("Error loading area users:", err);
+        setMessage("Error loading users: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [area.id, user.id, user.role, user.username]);
 
   const loadAreaUsers = async () => {
     try {
@@ -200,16 +219,6 @@ export default function AreaUsersModal({ area, onClose, user }) {
   // Check if current user can manage area users (admin or area manager)
   const canManageCurrentArea = () => {
     return user.role === "admin" || area.permission === "area_manager";
-  };
-
-  const getPermissionDisplay = (permission) => {
-    const map = {
-      read: "📖 Read Only",
-      update: "✏️ Editor",
-      area_manager: "👨‍💼 Area Manager",
-      admin: "🔑 Admin",
-    };
-    return map[permission] || permission;
   };
 
   const getPermissionColor = (permission) => {

@@ -90,7 +90,7 @@ export function canDeleteArea(globalRole, areaPermission) {
   return globalRole === "admin" || areaPermission === "area_manager";
 }
 
-export default {
+const permissionsExport = {
   hasUpdatePermission,
   hasReadPermission,
   getPermissionDisplay,
@@ -98,3 +98,5 @@ export default {
   canManageAreaUsers,
   canDeleteArea,
 };
+
+export default permissionsExport;

@@ -6,13 +6,6 @@ export default function Notification({ user }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadLogs();
-    // Refresh logs every 30 seconds
-    const interval = setInterval(loadLogs, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
-
   const loadLogs = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/audit?limit=50`, {
@@ -30,6 +23,14 @@ export default function Notification({ user }) {
       setLoading(false);
     }
   };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    loadLogs();
+    // Refresh logs every 30 seconds
+    const interval = setInterval(loadLogs, 30000);
+    return () => clearInterval(interval);
+  }, [user.id, user.role, user.username]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getActionIcon = (action) => {
     switch (action) {

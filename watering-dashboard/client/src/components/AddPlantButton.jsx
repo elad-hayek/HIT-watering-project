@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./AddPlantButton.css";
 import { API_BASE_URL } from "../config";
 
@@ -46,31 +46,34 @@ export default function AddPlantButton({
   };
 
   // Check if coordinates are within the area boundary
-  const isWithinArea = (lat, lng) => {
-    if (!area || !area.bounds_json) return true; // Allow if no bounds defined
+  const isWithinArea = useCallback(
+    (lat, lng) => {
+      if (!area || !area.bounds_json) return true; // Allow if no bounds defined
 
-    try {
-      const bounds = JSON.parse(area.bounds_json);
-      if (!bounds) return true;
+      try {
+        const bounds = JSON.parse(area.bounds_json);
+        if (!bounds) return true;
 
-      if (area.type === "rectangle" && bounds.length === 2) {
-        return isPointInRectangle(lat, lng, bounds);
-      } else if (area.type === "polygon" && Array.isArray(bounds[0])) {
-        return isPointInPolygon(lat, lng, bounds);
+        if (area.type === "rectangle" && bounds.length === 2) {
+          return isPointInRectangle(lat, lng, bounds);
+        } else if (area.type === "polygon" && Array.isArray(bounds[0])) {
+          return isPointInPolygon(lat, lng, bounds);
+        }
+        return true;
+      } catch (e) {
+        console.error("Error checking bounds:", e);
+        return true; // Allow if error parsing bounds
       }
-      return true;
-    } catch (e) {
-      console.error("Error checking bounds:", e);
-      return true; // Allow if error parsing bounds
-    }
-  };
+    },
+    [area],
+  );
 
   // Clear error when modal opens for a fresh state
   useEffect(() => {
     if (showModal && !mapCoordinates) {
       setError(""); // Clear error when opening modal without a location
     }
-  }, [showModal]);
+  }, [showModal, mapCoordinates]);
 
   // Validate coordinates only after they've been set (user clicked map)
   useEffect(() => {
@@ -83,7 +86,7 @@ export default function AddPlantButton({
         setError(""); // Clear error if coordinates are valid
       }
     }
-  }, [mapCoordinates, area]);
+  }, [mapCoordinates, area, isWithinArea]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
