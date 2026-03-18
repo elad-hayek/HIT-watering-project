@@ -142,6 +142,9 @@
   justify-content: center;
   flex-wrap: wrap;
   margin-top: 40px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .btn {
@@ -210,6 +213,7 @@
 
   .cta-buttons {
     flex-direction: column;
+    max-width: 300px;
   }
 
   .btn {
