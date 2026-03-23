@@ -24,8 +24,7 @@ export default function Activity({ user }) {
   }, []);
 
   // Check if user is admin
-  const isAdmin =
-    user?.title === "Administrator" || user?.username === "340969674";
+  const isAdmin = user?.role === "admin";
 
   // Fetch logs
   const fetchLogs = useCallback(

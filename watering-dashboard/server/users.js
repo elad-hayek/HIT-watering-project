@@ -93,7 +93,7 @@ router.post("/login", (req, res) => {
     return res.status(400).json({ error: "ID must be exactly 9 digits" });
   }
 
-  const sql = `SELECT id, username, password, lastname, name, title, city, role
+  const sql = `SELECT id, username, password, lastname, name, city, role
                  FROM users WHERE username = ? LIMIT 1`;
 
   db.query(sql, [username], async (err, rows) => {
@@ -154,7 +154,6 @@ router.post("/login", (req, res) => {
         username: user.username,
         name: user.name,
         lastname: user.lastname,
-        title: user.title,
         city: user.city,
         role: user.role,
       },
@@ -165,7 +164,7 @@ router.post("/login", (req, res) => {
 // GET /api/users/:id
 router.get("/:id", (req, res) => {
   const { id } = req.params;
-  const sql = `SELECT id, username, lastname, name, title, city, role, created_at FROM users WHERE id = ? LIMIT 1`;
+  const sql = `SELECT id, username, lastname, name, city, role, created_at FROM users WHERE id = ? LIMIT 1`;
 
   db.query(sql, [id], (err, rows) => {
     if (err) {
@@ -183,7 +182,7 @@ router.get("/:id", (req, res) => {
 
 // GET /api/users - Get all users (for user management) - Admin only
 router.get("/", requireAdmin, (req, res) => {
-  const sql = `SELECT id, username, lastname, name, title, city, role, created_at FROM users ORDER BY created_at DESC`;
+  const sql = `SELECT id, username, lastname, name, city, role, created_at FROM users ORDER BY created_at DESC`;
 
   db.query(sql, (err, rows) => {
     if (err) {
@@ -205,7 +204,7 @@ router.get("/search/:query", requireAdmin, (req, res) => {
   const { query } = req.params;
   const searchTerm = `%${query}%`;
 
-  const sql = `SELECT id, username, lastname, name, title, city, role, created_at 
+  const sql = `SELECT id, username, lastname, name, city, role, created_at 
                FROM users 
                WHERE username LIKE ? OR name LIKE ? OR lastname LIKE ?
                ORDER BY created_at DESC

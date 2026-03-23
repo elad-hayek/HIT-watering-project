@@ -72,7 +72,6 @@ export default function User({ user, setUser }) {
               {user.name} {user.lastname}
             </h2>
             <p className="user-id">ID: {user.username}</p>
-            {user.title && <p className="user-title">{user.title}</p>}
           </div>
         </div>
 
