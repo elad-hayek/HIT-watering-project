@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const bcrypt = require("bcrypt");
 const db = require("./Database");
 const { writeAudit } = require("./logs");
 const {
@@ -12,7 +13,7 @@ const { requireAuth, requireRole, requireAdmin } = require("./rbacMiddleware");
 
 // POST /api/users/register
 // Register a new user - they are assigned 'user' role by default
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   const { username, password, lastname, name, city } = req.body;
   const actor = req.headers["x-user"] || String(username || "");
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
@@ -28,7 +29,7 @@ router.post("/register", (req, res) => {
   db.query(
     "SELECT 1 FROM users WHERE username = ? LIMIT 1",
     [username],
-    (err, rows) => {
+    async (err, rows) => {
       if (err) {
         console.error("❌ Check ID DB error:", err);
         return res.status(500).json({ error: "Database error" });
@@ -37,37 +38,45 @@ router.post("/register", (req, res) => {
         return res.status(409).json({ error: "ID already exists" });
       }
 
-      // Auto-assign 'user' role on registration
-      const sql = `
-            INSERT INTO users (username, password, lastname, name, city, role)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `;
-      db.query(
-        sql,
-        [username, password, lastname, name, city, ROLES.USER],
-        async (err2, result) => {
-          if (err2) {
-            console.error("❌ Register DB error:", err2);
-            return res.status(500).json({ error: "Database error" });
-          }
+      try {
+        // Hash password with bcrypt (salt rounds: 10)
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-          try {
-            await writeAudit({
-              action: "user_register",
-              entity_type: "user",
-              entity_id: result.insertId,
-              actor,
-              ip,
-              details: { username, role: ROLES.USER },
+        // Auto-assign 'user' role on registration
+        const sql = `
+              INSERT INTO users (username, password, lastname, name, city, role)
+              VALUES (?, ?, ?, ?, ?, ?)
+          `;
+        db.query(
+          sql,
+          [username, hashedPassword, lastname, name, city, ROLES.USER],
+          async (err2, result) => {
+            if (err2) {
+              console.error("❌ Register DB error:", err2);
+              return res.status(500).json({ error: "Database error" });
+            }
+
+            try {
+              await writeAudit({
+                action: "user_register",
+                entity_type: "user",
+                entity_id: result.insertId,
+                actor,
+                ip,
+                details: { username, role: ROLES.USER },
+              });
+            } catch (_) {}
+
+            res.status(201).json({
+              message: "User registered with User role",
+              userId: result.insertId,
             });
-          } catch (_) {}
-
-          res.status(201).json({
-            message: "User registered with User role",
-            userId: result.insertId,
-          });
-        },
-      );
+          },
+        );
+      } catch (hashErr) {
+        console.error("❌ Password hashing error:", hashErr);
+        return res.status(500).json({ error: "Error processing password" });
+      }
     },
   );
 });
@@ -107,18 +116,25 @@ router.post("/login", (req, res) => {
     }
 
     const user = rows[0];
-    if (user.password !== password) {
-      try {
-        await writeAudit({
-          action: "user_login_failed",
-          entity_type: "user",
-          entity_id: user.id,
-          actor: username,
-          ip,
-          details: { reason: "invalid_password" },
-        });
-      } catch (_) {}
-      return res.status(401).json({ error: "Invalid ID or password" });
+    try {
+      // Compare plaintext password with bcrypt hash
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
+        try {
+          await writeAudit({
+            action: "user_login_failed",
+            entity_type: "user",
+            entity_id: user.id,
+            actor: username,
+            ip,
+            details: { reason: "invalid_password" },
+          });
+        } catch (_) {}
+        return res.status(401).json({ error: "Invalid ID or password" });
+      }
+    } catch (compareErr) {
+      console.error("❌ Password comparison error:", compareErr);
+      return res.status(500).json({ error: "Error validating password" });
     }
 
     try {
