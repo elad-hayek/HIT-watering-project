@@ -1,0 +1,2 @@
+- upload image for areas instead of just maps. (maybe limit size and type)
+- add how many liters or mil for the plant additions and edit forms
