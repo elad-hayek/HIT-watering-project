@@ -76,15 +76,45 @@ export default function AddPlantButton({
     }
   }, [showModal, mapCoordinates]);
 
-  // Validate coordinates only after they've been set (user clicked map)
+  // Validate coordinates only after they've been set (user clicked map or image)
   useEffect(() => {
     if (mapCoordinates) {
-      if (!isWithinArea(mapCoordinates.lat, mapCoordinates.lng)) {
-        setError(
-          "❌ Plant location is OUTSIDE the area boundary. Please click inside the area on the map.",
-        );
+      // Only validate map area boundaries for GPS coordinates
+      if (mapCoordinates.lat != null && mapCoordinates.lng != null) {
+        if (!isWithinArea(mapCoordinates.lat, mapCoordinates.lng)) {
+          setError(
+            "❌ Plant location is OUTSIDE the area boundary. Please click inside the area on the map.",
+          );
+        } else {
+          setError(""); // Clear error if coordinates are valid
+        }
+      } else if (
+        mapCoordinates.imageX != null &&
+        mapCoordinates.imageY != null
+      ) {
+        // Image area coordinates - validate against image dimensions
+        if (
+          area?.photo_display_type === "image" &&
+          area?.photo_width &&
+          area?.photo_height
+        ) {
+          if (
+            mapCoordinates.imageX < 0 ||
+            mapCoordinates.imageX > area.photo_width ||
+            mapCoordinates.imageY < 0 ||
+            mapCoordinates.imageY > area.photo_height
+          ) {
+            setError(
+              `❌ Plant location (${mapCoordinates.imageX}, ${mapCoordinates.imageY}) is OUTSIDE the image bounds (${area.photo_width}x${area.photo_height}px). Please click inside the image.`,
+            );
+          } else {
+            setError("");
+          }
+        } else {
+          setError("");
+        }
       } else {
-        setError(""); // Clear error if coordinates are valid
+        setError("");
       }
     }
   }, [mapCoordinates, area, isWithinArea]);
@@ -121,6 +151,27 @@ export default function AddPlantButton({
       }
     }
 
+    // For image areas, check if coordinates are within image bounds
+    if (
+      area?.photo_display_type === "image" &&
+      mapCoordinates.imageX != null &&
+      mapCoordinates.imageY != null
+    ) {
+      if (area?.photo_width && area?.photo_height) {
+        if (
+          mapCoordinates.imageX < 0 ||
+          mapCoordinates.imageX > area.photo_width ||
+          mapCoordinates.imageY < 0 ||
+          mapCoordinates.imageY > area.photo_height
+        ) {
+          setError(
+            `Plant location (${mapCoordinates.imageX}, ${mapCoordinates.imageY}) must be within the image bounds (${area.photo_width}x${area.photo_height}px). Please click inside the image.`,
+          );
+          return;
+        }
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -137,17 +188,26 @@ export default function AddPlantButton({
         notes,
       };
 
-      // Add coordinates based on area type
-      if (area?.photo_display_type === "image") {
+      // Add coordinates based on area type and what was captured
+      if (
+        area?.photo_display_type === "image" &&
+        mapCoordinates.imageX != null &&
+        mapCoordinates.imageY != null
+      ) {
         // Image area: use pixel coordinates
         body.imageXCoordinate = mapCoordinates.imageX;
         body.imageYCoordinate = mapCoordinates.imageY;
         body.lat = null;
         body.lng = null;
-      } else {
+      } else if (mapCoordinates.lat != null && mapCoordinates.lng != null) {
         // Map area: use lat/lng coordinates
         body.lat = mapCoordinates.lat;
         body.lng = mapCoordinates.lng;
+      } else {
+        // Neither coordinate type captured properly
+        setError("Unable to determine location. Please try again.");
+        setLoading(false);
+        return;
       }
 
       const response = await fetch(`${API_BASE_URL}/api/plants`, {

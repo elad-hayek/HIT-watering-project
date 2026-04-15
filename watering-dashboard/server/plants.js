@@ -152,12 +152,10 @@ router.post("/", requireAuth, (req, res) => {
   const hasImageCoords = imageXCoordinate != null && imageYCoordinate != null;
 
   if (!areaId || !name || (!hasMapCoords && !hasImageCoords)) {
-    return res
-      .status(400)
-      .json({
-        error:
-          "Area ID, name, and coordinates (lat/lng or image x/y) are required",
-      });
+    return res.status(400).json({
+      error:
+        "Area ID, name, and coordinates (lat/lng or image x/y) are required",
+    });
   }
 
   // Check area access and permission for area managers/users
@@ -191,7 +189,7 @@ router.post("/", requireAuth, (req, res) => {
     }
 
     // First, get the area to validate coordinates are within bounds
-    const areaSql = `SELECT type, bounds_json, positions FROM areas WHERE id = ? LIMIT 1`;
+    const areaSql = `SELECT type, bounds_json, positions, photo_display_type, photo_width, photo_height FROM areas WHERE id = ? LIMIT 1`;
     db.query(areaSql, [areaId], (err, areaResults) => {
       if (err) {
         console.error("❌ Error fetching area:", err);
@@ -205,8 +203,8 @@ router.post("/", requireAuth, (req, res) => {
       const area = areaResults[0];
       let isWithinBounds = true;
 
-      // Validate coordinates are within area bounds
-      if (area.bounds_json) {
+      // Validate GPS coordinates are within area bounds (for map areas)
+      if (hasMapCoords && area.bounds_json) {
         try {
           const bounds = parseJSON(area.bounds_json);
           if (area.type === "rectangle") {
@@ -219,6 +217,27 @@ router.post("/", requireAuth, (req, res) => {
           }
         } catch (e) {
           console.log("Could not validate bounds:", e);
+        }
+      }
+
+      // Validate image coordinates are within image dimensions (for image areas)
+      if (hasImageCoords && area.photo_display_type === "image") {
+        // Check if we have dimension data
+        if (area.photo_width && area.photo_height) {
+          if (
+            imageXCoordinate < 0 ||
+            imageXCoordinate > area.photo_width ||
+            imageYCoordinate < 0 ||
+            imageYCoordinate > area.photo_height
+          ) {
+            return res.status(400).json({
+              error: `Plant coordinates (${imageXCoordinate}, ${imageYCoordinate}) are outside image bounds (${area.photo_width}x${area.photo_height}). Please click inside the image area.`,
+            });
+          }
+        } else {
+          console.warn(
+            `⚠️ Image dimensions not available for area ${areaId}, skipping coordinate validation`,
+          );
         }
       }
 

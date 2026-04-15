@@ -153,8 +153,15 @@ export default function HomeAfterLogin({ user }) {
     }
   };
 
-  const handleMapClick = useCallback(({ lat, lng }) => {
-    setMapCoordinates({ lat, lng });
+  const handleMapClick = useCallback((coords) => {
+    // Accept both GPS coordinates { lat, lng } and image coordinates { imageX, imageY }
+    if (coords.imageX !== undefined && coords.imageY !== undefined) {
+      // Image area coordinates
+      setMapCoordinates({ imageX: coords.imageX, imageY: coords.imageY });
+    } else if (coords.lat !== undefined && coords.lng !== undefined) {
+      // Map area coordinates
+      setMapCoordinates({ lat: coords.lat, lng: coords.lng });
+    }
   }, []);
 
   if (loading) {

@@ -3,6 +3,8 @@ const router = express.Router();
 const db = require("./Database");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs").promises;
+const { imageSize } = require("image-size");
 const { writeAudit } = require("./logs");
 const {
   ROLES,
@@ -345,15 +347,31 @@ router.delete("/:id", requireAuth, (req, res) => {
   }
 
   function performDelete() {
-    // First, get the area details before deleting
-    const getAreaSql = `SELECT name FROM areas WHERE id = ? LIMIT 1`;
-    db.query(getAreaSql, [id], (err, results) => {
+    // First, get the area details (including photo_url) before deleting
+    const getAreaSql = `SELECT name, photo_url FROM areas WHERE id = ? LIMIT 1`;
+    db.query(getAreaSql, [id], async (err, results) => {
       if (err) {
         console.error("❌ Get area details error:", err);
         return res.status(500).json({ error: "Database error" });
       }
 
       const areaName = results.length > 0 ? results[0].name : "Unknown Area";
+      const photoUrl = results.length > 0 ? results[0].photo_url : null;
+
+      // Delete associated image file if it exists
+      if (photoUrl) {
+        try {
+          const filePath = path.join(__dirname, photoUrl);
+          await fs.unlink(filePath);
+          console.log(`✓ Deleted image file: ${filePath}`);
+        } catch (fileErr) {
+          // Log but don't fail - image file may not exist or have been deleted already
+          console.warn(
+            `⚠️ Could not delete image file for area ${id}:`,
+            fileErr.message,
+          );
+        }
+      }
 
       const deleteSql = `DELETE FROM areas WHERE id = ?`;
 
@@ -446,10 +464,30 @@ router.post(
 
       function performUpload() {
         const photoUrl = `/uploads/areas/${req.file.filename}`;
+        const filePath = path.join(__dirname, photoUrl);
 
-        const sql = `UPDATE areas SET photo_url = ? WHERE id = ?`;
+        // Extract image dimensions using image-size
+        let photoWidth = null;
+        let photoHeight = null;
 
-        db.query(sql, [photoUrl, id], async (err) => {
+        try {
+          const dimensions = imageSize(filePath);
+          photoWidth = dimensions.width;
+          photoHeight = dimensions.height;
+          console.log(
+            `✓ Image dimensions: ${photoWidth}x${photoHeight}px for ${req.file.filename}`,
+          );
+        } catch (dimErr) {
+          console.warn(
+            `⚠️ Could not extract image dimensions:`,
+            dimErr.message,
+          );
+          // Continue upload even if dimension extraction fails
+        }
+
+        const sql = `UPDATE areas SET photo_url = ?, photo_width = ?, photo_height = ? WHERE id = ?`;
+
+        db.query(sql, [photoUrl, photoWidth, photoHeight, id], async (err) => {
           if (err) {
             console.error("❌ Update area photo error:", err);
             return res.status(500).json({ error: "Database error" });
@@ -462,11 +500,20 @@ router.post(
               entity_id: id,
               actor,
               ip,
-              details: { filename: req.file.filename },
+              details: {
+                filename: req.file.filename,
+                width: photoWidth,
+                height: photoHeight,
+              },
             });
           } catch (_) {}
 
-          res.json({ message: "Photo uploaded", photoUrl });
+          res.json({
+            message: "Photo uploaded",
+            photoUrl,
+            photoWidth,
+            photoHeight,
+          });
         });
       }
     }
