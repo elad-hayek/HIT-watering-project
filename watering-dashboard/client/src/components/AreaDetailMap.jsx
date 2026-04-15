@@ -68,11 +68,14 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
     }
 
     // Valid coordinates - clear error and store DISPLAY position for rendering
-    // (convert back to display coordinates for visual marker placement)
+    // Need to account for image's offset within the container for absolute positioning
+    const offsetX = imgRect.left - containerRect.left;
+    const offsetY = imgRect.top - containerRect.top;
+
     setBoundaryError("");
     setNewPlantPosition({
-      x: Math.round(clickDisplayX),
-      y: Math.round(clickDisplayY),
+      x: Math.round(clickDisplayX + offsetX),
+      y: Math.round(clickDisplayY + offsetY),
     });
 
     if (onMapClick) {
@@ -85,6 +88,35 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
   const handlePlantMarkerClick = (plant, e) => {
     e.stopPropagation();
     setClickedPlant(clickedPlant?.id === plant.id ? null : plant);
+  };
+
+  // Convert original image coordinates to display coordinates within container
+  const getDisplayCoordinates = (originalX, originalY) => {
+    if (!imageContainerRef.current) return { x: 0, y: 0 };
+
+    const imgElement = imageContainerRef.current.querySelector(".area-image");
+    if (!imgElement) return { x: 0, y: 0 };
+
+    const imgRect = imgElement.getBoundingClientRect();
+    const containerRect = imageContainerRef.current.getBoundingClientRect();
+
+    // Calculate scale factors (inverse of what's used in handleImageClick)
+    const scaleX = imgRect.width / imgElement.naturalWidth;
+    const scaleY = imgRect.height / imgElement.naturalHeight;
+
+    // Convert original image coordinates to display coordinates relative to image
+    const displayX = originalX * scaleX;
+    const displayY = originalY * scaleY;
+
+    // Account for image's offset within the container
+    const offsetX = imgRect.left - containerRect.left;
+    const offsetY = imgRect.top - containerRect.top;
+
+    // Return coordinates relative to container (for absolute positioning)
+    return {
+      x: displayX + offsetX,
+      y: displayY + offsetY,
+    };
   };
 
   // Render plant markers overlay on image
@@ -112,14 +144,19 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
                 ? "#f44336"
                 : "#9e9e9e";
 
+        const displayCoords = getDisplayCoordinates(
+          plant.image_x_coordinate,
+          plant.image_y_coordinate,
+        );
+
         return (
           <div
             key={plant.id}
             className={`plant-marker ${clickedPlant?.id === plant.id ? "clicked" : ""}`}
             style={{
               position: "absolute",
-              left: `${plant.image_x_coordinate}px`,
-              top: `${plant.image_y_coordinate}px`,
+              left: `${displayCoords.x}px`,
+              top: `${displayCoords.y}px`,
               transform: "translate(-50%, -50%)",
               cursor: "pointer",
               zIndex: clickedPlant?.id === plant.id ? 100 : 50,
