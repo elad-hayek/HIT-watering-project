@@ -194,8 +194,7 @@ export default function EditPlantModal({ plant, onClose, onUpdate, user }) {
 
               <div className="info-message">
                 💡 Edit the X and Y pixel coordinates above to reposition this
-                plant on the image, or close this form and click the plant
-                marker on the image to reposition it.
+                plant on the image.
               </div>
             </>
           )}
