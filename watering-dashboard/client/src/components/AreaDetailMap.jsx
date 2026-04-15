@@ -11,22 +11,73 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
   const imageContainerRef = useRef(null);
   const [clickedPlant, setClickedPlant] = useState(null);
   const [newPlantPosition, setNewPlantPosition] = useState(null);
+  const [boundaryError, setBoundaryError] = useState("");
 
   // Handle image area clicks for plant placement
   const handleImageClick = (e) => {
     if (area?.photo_display_type !== "image" || !imageContainerRef.current)
       return;
 
-    const rect = imageContainerRef.current.getBoundingClientRect();
-    const x = Math.round(e.clientX - rect.left);
-    const y = Math.round(e.clientY - rect.top);
+    // Find the actual img element within the container
+    const imgElement = imageContainerRef.current.querySelector(".area-image");
+    if (!imgElement) return;
 
-    // Store position for temporary marker and callback
-    setNewPlantPosition({ x, y });
+    // Get bounding rectangles for click position calculation
+    const containerRect = imageContainerRef.current.getBoundingClientRect();
+    const imgRect = imgElement.getBoundingClientRect();
+
+    // Calculate click position relative to the img element (in display pixels)
+    const clickDisplayX = e.clientX - imgRect.left;
+    const clickDisplayY = e.clientY - imgRect.top;
+
+    // Check if click is within the visible image bounds
+    if (
+      clickDisplayX < 0 ||
+      clickDisplayX > imgRect.width ||
+      clickDisplayY < 0 ||
+      clickDisplayY > imgRect.height
+    ) {
+      setBoundaryError(
+        `❌ Click is outside the image bounds. Please click within the visible image area.`,
+      );
+      setNewPlantPosition(null);
+      return;
+    }
+
+    // Calculate scale factors to normalize from display pixels to original image dimensions
+    // The image is scaled by CSS (max-width, max-height, object-fit: contain)
+    const scaleX = imgElement.naturalWidth / imgRect.width;
+    const scaleY = imgElement.naturalHeight / imgRect.height;
+
+    // Convert display pixel coordinates to original image coordinates
+    const originalX = Math.round(clickDisplayX * scaleX);
+    const originalY = Math.round(clickDisplayY * scaleY);
+
+    // Validate that normalized coordinates are within original image dimensions
+    if (
+      originalX < 0 ||
+      originalX > area?.photo_width ||
+      originalY < 0 ||
+      originalY > area?.photo_height
+    ) {
+      setBoundaryError(
+        `❌ Plant location (${originalX}, ${originalY}) is OUTSIDE the image bounds (${area?.photo_width}x${area?.photo_height}px). Please click inside the image.`,
+      );
+      setNewPlantPosition(null);
+      return;
+    }
+
+    // Valid coordinates - clear error and store DISPLAY position for rendering
+    // (convert back to display coordinates for visual marker placement)
+    setBoundaryError("");
+    setNewPlantPosition({
+      x: Math.round(clickDisplayX),
+      y: Math.round(clickDisplayY),
+    });
 
     if (onMapClick) {
-      // Pass coordinates in format compatible with Home_AfterLogin expectations
-      onMapClick({ imageX: x, imageY: y });
+      // Pass ORIGINAL image coordinates to parent (for API)
+      onMapClick({ imageX: originalX, imageY: originalY });
     }
   };
 
@@ -189,6 +240,7 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
     // Reset UI state when area changes
     setClickedPlant(null);
     setNewPlantPosition(null);
+    setBoundaryError("");
 
     // Skip map initialization for image areas
     if (area?.photo_display_type === "image" && area?.photo_url) {
@@ -359,6 +411,29 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
 
           {/* Render temporary new plant marker */}
           {renderNewPlantMarker()}
+
+          {/* Display boundary error if click is outside image */}
+          {boundaryError && (
+            <div
+              style={{
+                position: "absolute",
+                top: "10px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                backgroundColor: "#f44336",
+                color: "white",
+                padding: "12px 20px",
+                borderRadius: "4px",
+                zIndex: 100,
+                fontSize: "0.9em",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                maxWidth: "90%",
+                textAlign: "center",
+              }}
+            >
+              {boundaryError}
+            </div>
+          )}
 
           <div className="map-info">
             <p>
