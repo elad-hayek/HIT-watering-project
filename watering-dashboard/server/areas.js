@@ -29,17 +29,15 @@ const fileFilter = (req, file, cb) => {
 
   if (!allowedMimes.includes(file.mimetype)) {
     return cb(
-      new Error(
-        "Invalid file type. Only JPEG and PNG images are allowed."
-      ),
-      false
+      new Error("Invalid file type. Only JPEG and PNG images are allowed."),
+      false,
     );
   }
 
   if (req.file && req.file.size > maxSize) {
     return cb(
       new Error("File size exceeds 5MB limit. Please upload a smaller image."),
-      false
+      false,
     );
   }
 
@@ -127,7 +125,14 @@ router.get("/:id", requireAuth, (req, res) => {
 // POST /api/areas - Create new area
 // Any authenticated user can create areas (will become area manager for that area)
 router.post("/", requireAuth, (req, res) => {
-  const { name, description, type, bounds_json, positions, photo_display_type } = req.body;
+  const {
+    name,
+    description,
+    type,
+    bounds_json,
+    positions,
+    photo_display_type,
+  } = req.body;
   const userId = req.userId;
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
@@ -138,12 +143,9 @@ router.post("/", requireAuth, (req, res) => {
 
   // photo_display_type is required (must be 'map' or 'image')
   if (!photo_display_type || !["map", "image"].includes(photo_display_type)) {
-    return res
-      .status(400)
-      .json({
-        error:
-          "photo_display_type is required and must be 'map' or 'image'",
-      });
+    return res.status(400).json({
+      error: "photo_display_type is required and must be 'map' or 'image'",
+    });
   }
 
   const sql = `
@@ -281,8 +283,7 @@ router.put("/:id", requireAuth, (req, res) => {
         ];
       }
 
-      db.query(updateSql, updateParams,
-      async (err) => {
+      db.query(updateSql, updateParams, async (err) => {
         if (err) {
           console.error("❌ Update area error:", err);
           return res.status(500).json({ error: "Database error" });
@@ -300,8 +301,8 @@ router.put("/:id", requireAuth, (req, res) => {
         } catch (_) {}
 
         res.json({ message: "Area updated" });
-      },
-    );
+      });
+    });
   }
 });
 
@@ -421,7 +422,6 @@ router.post(
     });
 
     function continueUpload() {
-
       // Check access and permission for area managers and users
       if (userRole !== ROLES.ADMIN) {
         const checkAccessSql = `SELECT permission FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
@@ -432,9 +432,7 @@ router.post(
               .json({ error: "You do not have access to this area" });
           }
           // Check if permission is 'update'
-          if (
-            !hasAreaUpdatePermission(userRole, checkResults[0].permission)
-          ) {
+          if (!hasAreaUpdatePermission(userRole, checkResults[0].permission)) {
             return res.status(403).json({
               error:
                 "You do not have permission to update this area. Your access is read-only.",
@@ -447,29 +445,30 @@ router.post(
       }
 
       function performUpload() {
-      const photoUrl = `/uploads/areas/${req.file.filename}`;
+        const photoUrl = `/uploads/areas/${req.file.filename}`;
 
-      const sql = `UPDATE areas SET photo_url = ? WHERE id = ?`;
+        const sql = `UPDATE areas SET photo_url = ? WHERE id = ?`;
 
-      db.query(sql, [photoUrl, id], async (err) => {
-        if (err) {
-          console.error("❌ Update area photo error:", err);
-          return res.status(500).json({ error: "Database error" });
-        }
+        db.query(sql, [photoUrl, id], async (err) => {
+          if (err) {
+            console.error("❌ Update area photo error:", err);
+            return res.status(500).json({ error: "Database error" });
+          }
 
-        try {
-          await writeAudit({
-            action: "area_photo_upload",
-            entity_type: "area",
-            entity_id: id,
-            actor,
-            ip,
-            details: { filename: req.file.filename },
-          });
-        } catch (_) {}
+          try {
+            await writeAudit({
+              action: "area_photo_upload",
+              entity_type: "area",
+              entity_id: id,
+              actor,
+              ip,
+              details: { filename: req.file.filename },
+            });
+          } catch (_) {}
 
-        res.json({ message: "Photo uploaded", photoUrl });
-      });
+          res.json({ message: "Photo uploaded", photoUrl });
+        });
+      }
     }
   },
 );

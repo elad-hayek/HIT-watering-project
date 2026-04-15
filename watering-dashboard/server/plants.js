@@ -128,6 +128,8 @@ router.post("/", requireAuth, (req, res) => {
     type,
     lat,
     lng,
+    imageXCoordinate,
+    imageYCoordinate,
     wateringFrequencyDays,
     wateringVolumeLiters,
     status,
@@ -145,10 +147,17 @@ router.post("/", requireAuth, (req, res) => {
       .json({ error: "You do not have permission to create plants" });
   }
 
-  if (!areaId || !name || lat == null || lng == null) {
+  // Validate: either lat/lng (for map areas) or image coordinates (for image areas)
+  const hasMapCoords = lat != null && lng != null;
+  const hasImageCoords = imageXCoordinate != null && imageYCoordinate != null;
+
+  if (!areaId || !name || (!hasMapCoords && !hasImageCoords)) {
     return res
       .status(400)
-      .json({ error: "Area ID, name, and coordinates are required" });
+      .json({
+        error:
+          "Area ID, name, and coordinates (lat/lng or image x/y) are required",
+      });
   }
 
   // Check area access and permission for area managers/users
@@ -222,8 +231,8 @@ router.post("/", requireAuth, (req, res) => {
 
       // Insert plant if validation passed
       const plantSql = `
-        INSERT INTO plants (area_id, name, type, lat, lng, watering_frequency_days, watering_volume_liters, status, soil_moisture, notes, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO plants (area_id, name, type, lat, lng, image_x_coordinate, image_y_coordinate, watering_frequency_days, watering_volume_liters, status, soil_moisture, notes, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       db.query(
@@ -232,8 +241,10 @@ router.post("/", requireAuth, (req, res) => {
           areaId,
           name,
           type || null,
-          lat,
-          lng,
+          lat || null,
+          lng || null,
+          imageXCoordinate || null,
+          imageYCoordinate || null,
           wateringFrequencyDays || 1,
           wateringVolumeLiters || null,
           status || "healthy",
@@ -286,6 +297,8 @@ router.put("/:id", requireAuth, (req, res) => {
     type,
     lat,
     lng,
+    imageXCoordinate,
+    imageYCoordinate,
     wateringFrequencyDays,
     wateringVolumeLiters,
     status,
@@ -345,7 +358,7 @@ router.put("/:id", requireAuth, (req, res) => {
     function performUpdate() {
       const sql = `
         UPDATE plants 
-        SET name = ?, type = ?, lat = ?, lng = ?, watering_frequency_days = ?, 
+        SET name = ?, type = ?, lat = ?, lng = ?, image_x_coordinate = ?, image_y_coordinate = ?, watering_frequency_days = ?, 
             watering_volume_liters = ?, status = ?, soil_moisture = ?, notes = ?, last_watered = ?
         WHERE id = ?
       `;
@@ -355,8 +368,10 @@ router.put("/:id", requireAuth, (req, res) => {
         [
           name,
           type || null,
-          lat,
-          lng,
+          lat || null,
+          lng || null,
+          imageXCoordinate || null,
+          imageYCoordinate || null,
           wateringFrequencyDays || 1,
           wateringVolumeLiters || null,
           status || "healthy",

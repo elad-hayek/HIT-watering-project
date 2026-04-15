@@ -99,21 +99,57 @@ export default function AddPlantButton({
     }
 
     if (!mapCoordinates) {
-      setError("Please click on the map to set the plant location first");
+      if (area?.photo_display_type === "image") {
+        setError("Please click on the image to set the plant location first");
+      } else {
+        setError("Please click on the map to set the plant location first");
+      }
       return;
     }
 
-    // Check if coordinates are within area bounds
-    if (!isWithinArea(mapCoordinates.lat, mapCoordinates.lng)) {
-      setError(
-        "Plant location must be within the area boundary. Please select a location inside the area.",
-      );
-      return;
+    // For map areas, check if coordinates are within area bounds
+    if (
+      area?.photo_display_type !== "image" &&
+      mapCoordinates.lat != null &&
+      mapCoordinates.lng != null
+    ) {
+      if (!isWithinArea(mapCoordinates.lat, mapCoordinates.lng)) {
+        setError(
+          "Plant location must be within the area boundary. Please select a location inside the area.",
+        );
+        return;
+      }
     }
 
     setLoading(true);
 
     try {
+      const body = {
+        areaId,
+        name,
+        type,
+        wateringFrequencyDays: parseInt(wateringFreq),
+        wateringVolumeLiters: wateringVolume
+          ? parseFloat(wateringVolume)
+          : null,
+        status,
+        soilMoisture: soilMoisture ? parseInt(soilMoisture) : null,
+        notes,
+      };
+
+      // Add coordinates based on area type
+      if (area?.photo_display_type === "image") {
+        // Image area: use pixel coordinates
+        body.imageXCoordinate = mapCoordinates.imageX;
+        body.imageYCoordinate = mapCoordinates.imageY;
+        body.lat = null;
+        body.lng = null;
+      } else {
+        // Map area: use lat/lng coordinates
+        body.lat = mapCoordinates.lat;
+        body.lng = mapCoordinates.lng;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/plants`, {
         method: "POST",
         headers: {
@@ -122,20 +158,7 @@ export default function AddPlantButton({
           "x-user-id": user.id,
           "x-user-role": user.role,
         },
-        body: JSON.stringify({
-          areaId,
-          name,
-          type,
-          lat: mapCoordinates.lat,
-          lng: mapCoordinates.lng,
-          wateringFrequencyDays: parseInt(wateringFreq),
-          wateringVolumeLiters: wateringVolume
-            ? parseFloat(wateringVolume)
-            : null,
-          status,
-          soilMoisture: soilMoisture ? parseInt(soilMoisture) : null,
-          notes,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -187,14 +210,18 @@ export default function AddPlantButton({
 
             {!mapCoordinates ? (
               <div className="info-message">
-                ℹ️ Please close this form, click on the map to mark the plant
-                location, then click "Add Plant" again to fill in the details
+                ℹ️ Please close this form, click on the{" "}
+                {area?.photo_display_type === "image" ? "image" : "map"} to mark
+                the plant location, then click "Add Plant" again to fill in the
+                details
               </div>
             ) : !error?.includes("OUTSIDE") ? (
               <>
                 <div className="success-message">
-                  ✓ Location selected on map: ({mapCoordinates.lat.toFixed(4)},
-                  {mapCoordinates.lng.toFixed(4)})
+                  ✓ Location selected:{" "}
+                  {area?.photo_display_type === "image"
+                    ? `(${mapCoordinates.imageX}, ${mapCoordinates.imageY}) pixels`
+                    : `(${mapCoordinates.lat.toFixed(4)}, ${mapCoordinates.lng.toFixed(4)})`}
                 </div>
 
                 <form onSubmit={handleSubmit}>

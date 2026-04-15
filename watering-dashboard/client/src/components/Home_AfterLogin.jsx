@@ -283,6 +283,12 @@ export default function HomeAfterLogin({ user }) {
                               <strong>Watering:</strong> Every{" "}
                               {plant.watering_frequency_days} days
                             </p>
+                            {plant.watering_volume_liters !== null && (
+                              <p>
+                                <strong>Watering Volume:</strong>{" "}
+                                {plant.watering_volume_liters} liters
+                              </p>
+                            )}
                             {plant.last_watered && (
                               <p>
                                 <strong>Last Watered:</strong>{" "}

@@ -11,8 +11,14 @@ export default function EditPlantModal({ plant, onClose, onUpdate, user }) {
   const [soilMoisture, setSoilMoisture] = useState("");
   const [notes, setNotes] = useState("");
   const [lastWatered, setLastWatered] = useState("");
+  const [imageXCoordinate, setImageXCoordinate] = useState("");
+  const [imageYCoordinate, setImageYCoordinate] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Determine if this is an image-based plant
+  const isImagePlant =
+    plant?.image_x_coordinate != null && plant?.image_y_coordinate != null;
 
   useEffect(() => {
     if (plant) {
@@ -26,6 +32,8 @@ export default function EditPlantModal({ plant, onClose, onUpdate, user }) {
       setLastWatered(
         plant.last_watered ? plant.last_watered.split(" ")[0] : "",
       );
+      setImageXCoordinate(plant.image_x_coordinate || "");
+      setImageYCoordinate(plant.image_y_coordinate || "");
     }
   }, [plant]);
 
@@ -41,6 +49,34 @@ export default function EditPlantModal({ plant, onClose, onUpdate, user }) {
     setLoading(true);
 
     try {
+      const body = {
+        name,
+        type,
+        wateringFrequencyDays: parseInt(wateringFreq),
+        wateringVolumeLiters: wateringVolume
+          ? parseFloat(wateringVolume)
+          : null,
+        status,
+        soilMoisture: soilMoisture ? parseInt(soilMoisture) : null,
+        notes,
+        lastWatered: lastWatered || null,
+      };
+
+      // Include coordinates based on plant type
+      if (isImagePlant) {
+        body.imageXCoordinate = imageXCoordinate
+          ? parseInt(imageXCoordinate)
+          : null;
+        body.imageYCoordinate = imageYCoordinate
+          ? parseInt(imageYCoordinate)
+          : null;
+        body.lat = null;
+        body.lng = null;
+      } else {
+        body.lat = plant.lat;
+        body.lng = plant.lng;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/plants/${plant.id}`, {
         method: "PUT",
         headers: {
@@ -49,20 +85,7 @@ export default function EditPlantModal({ plant, onClose, onUpdate, user }) {
           "x-user-id": user.id,
           "x-user-role": user.role,
         },
-        body: JSON.stringify({
-          name,
-          type,
-          lat: plant.lat,
-          lng: plant.lng,
-          wateringFrequencyDays: parseInt(wateringFreq),
-          wateringVolumeLiters: wateringVolume
-            ? parseFloat(wateringVolume)
-            : null,
-          status,
-          soilMoisture: soilMoisture ? parseInt(soilMoisture) : null,
-          notes,
-          lastWatered: lastWatered || null,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -144,6 +167,38 @@ export default function EditPlantModal({ plant, onClose, onUpdate, user }) {
               <option value="dormant">Dormant</option>
             </select>
           </div>
+
+          {isImagePlant && (
+            <>
+              <div className="form-group">
+                <label>Position X (pixels) *</label>
+                <input
+                  type="number"
+                  value={imageXCoordinate}
+                  onChange={(e) => setImageXCoordinate(e.target.value)}
+                  min="0"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Position Y (pixels) *</label>
+                <input
+                  type="number"
+                  value={imageYCoordinate}
+                  onChange={(e) => setImageYCoordinate(e.target.value)}
+                  min="0"
+                  required
+                />
+              </div>
+
+              <div className="info-message">
+                💡 Edit the X and Y pixel coordinates above to reposition this
+                plant on the image, or close this form and click the plant
+                marker on the image to reposition it.
+              </div>
+            </>
+          )}
 
           <div className="form-group">
             <label>Soil Moisture (%)</label>
