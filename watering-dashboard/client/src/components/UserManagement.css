@@ -1,0 +1,599 @@
+.user-management-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.admin-only-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #95a5a6;
+}
+
+.admin-only-message i {
+  font-size: 3em;
+  margin-bottom: 20px;
+  display: block;
+  opacity: 0.4;
+}
+
+.admin-only-message h2 {
+  color: #34495e;
+  font-size: 1.8em;
+  margin-bottom: 10px;
+}
+
+.admin-only-message p {
+  color: #7f8c8d;
+  font-size: 1.05em;
+}
+
+.user-management-header {
+  margin-bottom: 30px;
+}
+
+.user-management-header h2 {
+  font-size: 28px;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.user-management-header p {
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.search-form {
+  margin-bottom: 30px;
+}
+
+.search-input-group {
+  display: flex;
+  gap: 10px;
+  max-width: 500px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.search-button {
+  padding: 12px 20px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.3s;
+}
+
+.search-button:hover {
+  background-color: #2980b9;
+}
+
+.search-button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.message {
+  padding: 12px 15px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.message.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.loader {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.users-list {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.users-list h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #2c3e50;
+}
+
+.users-table {
+  overflow-x: auto;
+}
+
+.table-header,
+.table-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 200px;
+  gap: 15px;
+  align-items: center;
+  padding: 20px 15px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.table-header {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #2c3e50;
+  border-bottom: 2px solid #e0e6ed;
+  border-top: 2px solid #e0e6ed;
+  padding: 18px 15px;
+  position: sticky;
+  top: 0;
+}
+
+.table-row {
+  transition: all 0.2s;
+}
+
+.table-row:hover {
+  background-color: #e8f1fb;
+  border-left: 3px solid #667eea;
+  padding-left: 12px;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.col-id {
+  min-width: 120px;
+}
+
+.col-name {
+  min-width: 200px;
+}
+
+.col-actions {
+  min-width: 200px;
+}
+
+.id-badge {
+  display: inline-block;
+  background-color: #ecf0f1;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: monospace;
+  color: #34495e;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.user-subtitle {
+  display: block;
+  font-size: 12px;
+  color: #7f8c8d;
+  margin-top: 4px;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-action {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-role-toggle,
+.btn-delete-user {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-make-admin {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-make-admin:hover:not(:disabled) {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.btn-remove-admin {
+  background-color: #e67e22;
+  color: white;
+}
+
+.btn-remove-admin:hover:not(:disabled) {
+  background-color: #d35400;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+}
+
+.btn-delete-user {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-delete-user:hover:not(:disabled) {
+  background-color: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-role-toggle:disabled,
+.btn-delete-user:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.role-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.role-select:disabled {
+  background-color: #ecf0f1;
+  cursor: not-allowed;
+  color: #95a5a6;
+}
+
+.btn-update {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.3s;
+}
+
+.btn-update:hover:not(:disabled) {
+  background-color: #229954;
+}
+
+.btn-update:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.btn-delete {
+  padding: 8px 12px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.3s;
+}
+
+.btn-delete:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.btn-delete:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.current-user {
+  color: #3498db;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.no-change {
+  color: #95a5a6;
+  font-size: 13px;
+}
+
+.no-results,
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #7f8c8d;
+}
+
+.no-results i,
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #bdc3c7;
+}
+
+.no-results p,
+.empty-state p {
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .user-management-container {
+  background-color: transparent;
+}
+
+[data-theme="dark"] .user-management-header h2 {
+  color: #ecf0f1;
+}
+
+[data-theme="dark"] .user-management-header p {
+  color: #bdc3c7;
+}
+
+[data-theme="dark"] .search-input {
+  background-color: #34495e;
+  border-color: #44546f;
+  color: #ecf0f1;
+}
+
+[data-theme="dark"] .search-input:focus {
+  border-color: #3498db;
+}
+
+[data-theme="dark"] .users-list {
+  background-color: #2c3e50;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .users-list h3 {
+  color: #ecf0f1;
+}
+
+[data-theme="dark"] .table-header {
+  background-color: #34495e;
+  color: #ecf0f1;
+  border-bottom: 2px solid #44546f;
+  border-top: 2px solid #44546f;
+}
+
+[data-theme="dark"] .table-row {
+  border-bottom: 1px solid #34495e;
+  background-color: #2c3e50;
+}
+
+[data-theme="dark"] .table-row:hover {
+  background-color: #3d4f6a;
+  border-left: 3px solid #8b9bff;
+  padding-left: 12px;
+}
+
+[data-theme="dark"] .user-name {
+  color: #ecf0f1;
+}
+
+[data-theme="dark"] .id-badge {
+  background-color: #34495e;
+  color: #bdc3c7;
+}
+
+[data-theme="dark"] .role-select {
+  background-color: #34495e;
+  border-color: #44546f;
+  color: #ecf0f1;
+}
+
+[data-theme="dark"] .no-results,
+[data-theme="dark"] .empty-state {
+  color: #95a5a6;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 100px 150px 120px 120px 120px;
+  }
+
+  .col-id {
+    min-width: 100px;
+  }
+
+  .col-name {
+    min-width: 150px;
+  }
+
+  .col-role {
+    min-width: 120px;
+  }
+
+  .col-new-role {
+    min-width: 120px;
+  }
+
+  .col-actions {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .user-management-container {
+    padding: 15px;
+  }
+
+  .search-input-group {
+    max-width: 100%;
+  }
+
+  .users-list {
+    padding: 15px;
+  }
+
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 15px 0;
+  }
+
+  .col-id,
+  .col-name,
+  .col-role,
+  .col-new-role,
+  .col-actions {
+    min-width: auto;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    border: 1px solid #ecf0f1;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 10px;
+  }
+
+  .col-id::before {
+    content: "ID: ";
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .col-name::before {
+    content: "Name: ";
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .col-role::before {
+    content: "Current Role: ";
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .col-new-role::before {
+    content: "New Role: ";
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .col-actions::before {
+    content: "Actions: ";
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  [data-theme="dark"] .col-id::before,
+  [data-theme="dark"] .col-name::before,
+  [data-theme="dark"] .col-role::before,
+  [data-theme="dark"] .col-new-role::before,
+  [data-theme="dark"] .col-actions::before {
+    color: #ecf0f1;
+  }
+}
