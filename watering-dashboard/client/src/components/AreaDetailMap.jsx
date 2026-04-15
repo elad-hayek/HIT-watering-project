@@ -166,12 +166,7 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
   };
 
   useEffect(() => {
-    // Skip map initialization for image areas
-    if (area?.photo_display_type === "image" && area?.photo_url) {
-      return;
-    }
-
-    // Destroy existing map when area changes
+    // Always perform cleanup first to prevent old map instance from lingering
     if (mapInstanceRef.current) {
       try {
         mapInstanceRef.current.eachLayer((layer) => {
@@ -190,6 +185,15 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
     }
     plantsMarkersRef.current = [];
     clickMarkerRef.current = null;
+
+    // Reset UI state when area changes
+    setClickedPlant(null);
+    setNewPlantPosition(null);
+
+    // Skip map initialization for image areas
+    if (area?.photo_display_type === "image" && area?.photo_url) {
+      return;
+    }
 
     if (mapRef.current) {
       // Initialize map

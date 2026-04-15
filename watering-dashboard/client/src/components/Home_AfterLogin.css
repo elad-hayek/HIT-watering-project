@@ -187,6 +187,15 @@
   background: #4caf50;
 }
 
+.area-image-badge {
+  background: #ff9800 !important;
+  color: white;
+}
+
+[data-theme="dark"] .area-image-badge {
+  background: #ffb74d !important;
+}
+
 .btn-icon {
   background: none;
   border: none;

@@ -201,6 +201,11 @@ export default function HomeAfterLogin({ user }) {
                     </p>
                     <div className="area-meta-row">
                       <span className="area-meta">{area.type}</span>
+                      {area.photo_display_type === "image" && (
+                        <span className="area-meta area-image-badge">
+                          🖼️ Image Area
+                        </span>
+                      )}
                       <span
                         className={`area-permission permission-${user.role === "admin" ? "area_manager" : area.permission}`}
                       >
