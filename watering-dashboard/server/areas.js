@@ -3,8 +3,9 @@ const router = express.Router();
 const db = require("./Database");
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs").promises;
-const { imageSize } = require("image-size");
+const fs = require("fs");
+const { promises: fsPromises } = fs;
+const imageSize = require("image-size").default;
 const { writeAudit } = require("./logs");
 const {
   ROLES,
@@ -362,7 +363,7 @@ router.delete("/:id", requireAuth, (req, res) => {
       if (photoUrl) {
         try {
           const filePath = path.join(__dirname, photoUrl);
-          await fs.unlink(filePath);
+          await fsPromises.unlink(filePath);
           console.log(`✓ Deleted image file: ${filePath}`);
         } catch (fileErr) {
           // Log but don't fail - image file may not exist or have been deleted already
@@ -471,7 +472,8 @@ router.post(
         let photoHeight = null;
 
         try {
-          const dimensions = imageSize(filePath);
+          const imageBuffer = fs.readFileSync(filePath);
+          const dimensions = imageSize(imageBuffer);
           photoWidth = dimensions.width;
           photoHeight = dimensions.height;
           console.log(
