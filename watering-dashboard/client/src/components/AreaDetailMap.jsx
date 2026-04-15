@@ -171,18 +171,34 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
 
   return (
     <div className="area-detail-map">
-      <div ref={mapRef} className="leaflet-map"></div>
-      <div className="map-info">
-        <p>
-          <strong>Area Type:</strong> {area?.type}
-        </p>
-        <p>
-          <strong>Plants:</strong> {plants?.length || 0} plants in this area
-        </p>
-        <p style={{ fontSize: "0.85em", marginTop: "10px", color: "#999" }}>
-          💡 Click on the map to place a new plant inside this area
-        </p>
-      </div>
+      {area?.photo_display_type === "image" && area?.photo_url ? (
+        <div className="area-image-container">
+          <img src={area.photo_url} alt={area.name} className="area-image" />
+          <div className="map-info">
+            <p>
+              <strong>Area:</strong> {area?.name}
+            </p>
+            <p>
+              <strong>Plants:</strong> {plants?.length || 0} plants in this area
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div ref={mapRef} className="leaflet-map"></div>
+          <div className="map-info">
+            <p>
+              <strong>Area Type:</strong> {area?.type}
+            </p>
+            <p>
+              <strong>Plants:</strong> {plants?.length || 0} plants in this area
+            </p>
+            <p style={{ fontSize: "0.85em", marginTop: "10px", color: "#999" }}>
+              💡 Click on the map to place a new plant inside this area
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

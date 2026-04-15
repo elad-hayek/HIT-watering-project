@@ -437,3 +437,90 @@
   stroke: white !important;
   fill: white !important;
 }
+
+/* Choice container for map/image selection */
+.add-area-choice-container {
+  padding: 40px 30px;
+  text-align: center;
+}
+
+.add-area-choice-container p {
+  font-size: 1.2em;
+  color: #333;
+  margin-bottom: 30px;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .add-area-choice-container p {
+  color: #e0e0e0;
+}
+
+.add-area-choice-buttons {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.add-area-choice-btn {
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  padding: 30px 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.add-area-choice-btn:hover {
+  border-color: #2d5016;
+  box-shadow: 0 4px 12px rgba(45, 80, 22, 0.2);
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .add-area-choice-btn {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+[data-theme="dark"] .add-area-choice-btn:hover {
+  border-color: #4caf50;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.choice-icon {
+  font-size: 3em;
+}
+
+.choice-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #2d5016;
+}
+
+[data-theme="dark"] .choice-title {
+  color: #4caf50;
+}
+
+.choice-desc {
+  font-size: 0.95em;
+  color: #666;
+  text-align: center;
+}
+
+[data-theme="dark"] .choice-desc {
+  color: #aaa;
+}
+
+/* Image preview styling */
+.image-preview {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  object-fit: contain;
+  margin-top: 10px;
+}

@@ -4,37 +4,33 @@ import { API_BASE_URL } from "../config";
 
 export default function AddAreaButton({ onAreaCreated, user }) {
   const [showModal, setShowModal] = useState(false);
+  const [step, setStep] = useState("choice"); // 'choice', 'map', 'image'
+  const [displayType, setDisplayType] = useState(null); // 'map' or 'image'
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState("rectangle");
+  const [areaType, setAreaType] = useState("rectangle");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [drawnShape, setDrawnShape] = useState(null);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const drawnItemsRef = useRef(null);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Initialize map when step changes to 'map'
   useEffect(() => {
-    if (showModal) {
-      document.documentElement.setAttribute("data-add-area-modal-open", "true");
-      if (mapRef.current) {
-        // If shape already drawn and type changes, clear the shape and reinit
-        if (drawnShape) {
-          setDrawnShape(null);
-        }
-        // Always reinitialize map when type changes
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.remove();
-          mapInstanceRef.current = null;
-        }
-        // Reinitialize with new type
-        initializeMap();
+    if (step === "map" && mapRef.current) {
+      if (drawnShape) {
+        setDrawnShape(null);
       }
-    } else {
-      document.documentElement.removeAttribute("data-add-area-modal-open");
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      initializeMap();
     }
-  }, [showModal, type]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, areaType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initializeMap = () => {
     try {
@@ -78,8 +74,8 @@ export default function AddAreaButton({ onAreaCreated, user }) {
       const drawControl = new L.Control.Draw({
         position: "topright",
         draw: {
-          polygon: type === "polygon",
-          rectangle: type === "rectangle",
+          polygon: areaType === "polygon",
+          rectangle: areaType === "rectangle",
           polyline: false,
           circle: false,
           circlemarker: false,
@@ -160,7 +156,14 @@ export default function AddAreaButton({ onAreaCreated, user }) {
 
   const handleCloseModal = () => {
     setShowModal(false);
+    setStep("choice");
+    setDisplayType(null);
+    setName("");
+    setDescription("");
+    setAreaType("rectangle");
     setDrawnShape(null);
+    setUploadedImage(null);
+    setImagePreview(null);
     setError("");
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove();
@@ -177,18 +180,28 @@ export default function AddAreaButton({ onAreaCreated, user }) {
       return;
     }
 
-    if (!drawnShape) {
-      setError(
-        `Please draw a ${type === "rectangle" ? "rectangle" : "polygon"} on the map`,
-      );
-      return;
+    if (displayType === "map") {
+      if (!drawnShape) {
+        setError(
+          `Please draw a ${areaType === "rectangle" ? "rectangle" : "polygon"} on the map`,
+        );
+        return;
+      }
+      submitMapArea();
+    } else {
+      if (!uploadedImage) {
+        setError("Please select an image to upload");
+        return;
+      }
+      submitImageArea();
     }
+  };
 
+  const submitMapArea = async () => {
     setLoading(true);
-
     try {
       const boundsJson =
-        type === "rectangle"
+        areaType === "rectangle"
           ? JSON.stringify(drawnShape.bounds)
           : JSON.stringify(drawnShape.positions);
 
@@ -203,10 +216,13 @@ export default function AddAreaButton({ onAreaCreated, user }) {
         body: JSON.stringify({
           name,
           description,
-          type,
+          type: areaType,
           bounds_json: boundsJson,
           positions:
-            type === "polygon" ? JSON.stringify(drawnShape.positions) : null,
+            areaType === "polygon"
+              ? JSON.stringify(drawnShape.positions)
+              : null,
+          photo_display_type: "map",
         }),
       });
 
@@ -219,7 +235,7 @@ export default function AddAreaButton({ onAreaCreated, user }) {
 
       setName("");
       setDescription("");
-      setType("rectangle");
+      setAreaType("rectangle");
       setDrawnShape(null);
       handleCloseModal();
       setLoading(false);
@@ -228,6 +244,111 @@ export default function AddAreaButton({ onAreaCreated, user }) {
       setError("Connection error: " + err.message);
       setLoading(false);
     }
+  };
+
+  const submitImageArea = async () => {
+    setLoading(true);
+    try {
+      // First create the area
+      const createResponse = await fetch(`${API_BASE_URL}/api/areas`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user": user.username,
+          "x-user-id": user.id,
+          "x-user-role": user.role,
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          type: areaType,
+          photo_display_type: "image",
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const data = await createResponse.json();
+        setError(data.error || "Failed to create area");
+        setLoading(false);
+        return;
+      }
+
+      const createData = await createResponse.json();
+      const areaId = createData.areaId;
+
+      // Then upload the image
+      const formData = new FormData();
+      formData.append("photo", uploadedImage);
+
+      const uploadResponse = await fetch(
+        `${API_BASE_URL}/api/areas/${areaId}/photo`,
+        {
+          method: "POST",
+          headers: {
+            "x-user": user.username,
+            "x-user-id": user.id,
+            "x-user-role": user.role,
+          },
+          body: formData,
+        },
+      );
+
+      if (!uploadResponse.ok) {
+        const data = await uploadResponse.json();
+        setError(data.error || "Failed to upload image");
+        setLoading(false);
+        return;
+      }
+
+      setName("");
+      setDescription("");
+      setAreaType("rectangle");
+      setUploadedImage(null);
+      setImagePreview(null);
+      handleCloseModal();
+      setLoading(false);
+      onAreaCreated();
+    } catch (err) {
+      setError("Connection error: " + err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleChooseType = (type) => {
+    setDisplayType(type);
+    setError("");
+    if (type === "map") {
+      setStep("map");
+    } else {
+      setStep("image");
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      setError("Only JPEG and PNG images are allowed.");
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be smaller than 5MB.");
+      return;
+    }
+
+    setError("");
+    setUploadedImage(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -243,7 +364,13 @@ export default function AddAreaButton({ onAreaCreated, user }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="add-area-modal-header">
-              <h3>Create New Area</h3>
+              <h3>
+                {step === "choice"
+                  ? "Create New Area"
+                  : displayType === "map"
+                    ? "Create Map Area"
+                    : "Create Image Area"}
+              </h3>
               <button
                 className="add-area-modal-close"
                 onClick={handleCloseModal}
@@ -254,76 +381,192 @@ export default function AddAreaButton({ onAreaCreated, user }) {
 
             {error && <div className="add-area-error-message">{error}</div>}
 
-            <div className="add-area-form-container">
-              <div className="add-area-form-left">
-                <form onSubmit={handleSubmit}>
-                  <div className="add-area-form-group">
-                    <label>Area Name *</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g., South Garden"
-                      required
-                    />
-                  </div>
-
-                  <div className="add-area-form-group">
-                    <label>Description</label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Optional description"
-                      rows="3"
-                    />
-                  </div>
-
-                  <div className="add-area-form-group">
-                    <label>Area Type *</label>
-                    <select
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                    >
-                      <option value="rectangle">Rectangle</option>
-                      <option value="polygon">Polygon</option>
-                    </select>
-                    <small style={{ display: "block", marginTop: "5px" }}>
-                      {drawnShape
-                        ? "✓ Shape drawn on map"
-                        : "⚠ Draw a shape on the map →"}
-                    </small>
-                  </div>
-
-                  <div className="add-area-modal-actions">
-                    <button
-                      type="button"
-                      className="add-area-modal-btn add-area-modal-btn-cancel"
-                      onClick={handleCloseModal}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="add-area-modal-btn add-area-modal-btn-primary"
-                      disabled={loading || !drawnShape}
-                    >
-                      {loading ? "Creating..." : "Create Area"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              <div className="add-area-form-right">
-                <div className="add-area-map-instructions">
-                  <h4>🗺️ Draw Area Boundary</h4>
-                  <p>
-                    Use the drawing tools to create a {type} on the map. This
-                    defines where plants can be placed.
-                  </p>
+            {step === "choice" && (
+              <div className="add-area-choice-container">
+                <p>Choose how you want to represent this area:</p>
+                <div className="add-area-choice-buttons">
+                  <button
+                    type="button"
+                    className="add-area-choice-btn"
+                    onClick={() => handleChooseType("map")}
+                  >
+                    <div className="choice-icon">🗺️</div>
+                    <div className="choice-title">Map Area</div>
+                    <div className="choice-desc">
+                      Draw boundaries on a map to define the area
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="add-area-choice-btn"
+                    onClick={() => handleChooseType("image")}
+                  >
+                    <div className="choice-icon">🖼️</div>
+                    <div className="choice-title">Image Area</div>
+                    <div className="choice-desc">
+                      Upload an image to represent the area
+                    </div>
+                  </button>
                 </div>
-                <div ref={mapRef} className="add-area-map"></div>
               </div>
-            </div>
+            )}
+
+            {step === "map" && (
+              <div className="add-area-form-container">
+                <div className="add-area-form-left">
+                  <form onSubmit={handleSubmit}>
+                    <div className="add-area-form-group">
+                      <label>Area Name *</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g., South Garden"
+                        required
+                      />
+                    </div>
+
+                    <div className="add-area-form-group">
+                      <label>Description</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Optional description"
+                        rows="3"
+                      />
+                    </div>
+
+                    <div className="add-area-form-group">
+                      <label>Map Type *</label>
+                      <select
+                        value={areaType}
+                        onChange={(e) => setAreaType(e.target.value)}
+                      >
+                        <option value="rectangle">Rectangle</option>
+                        <option value="polygon">Polygon</option>
+                      </select>
+                      <small style={{ display: "block", marginTop: "5px" }}>
+                        {drawnShape
+                          ? "✓ Shape drawn on map"
+                          : "⚠ Draw a shape on the map →"}
+                      </small>
+                    </div>
+
+                    <div className="add-area-modal-actions">
+                      <button
+                        type="button"
+                        className="add-area-modal-btn add-area-modal-btn-cancel"
+                        onClick={() => {
+                          setStep("choice");
+                          setDisplayType(null);
+                          setError("");
+                        }}
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        className="add-area-modal-btn add-area-modal-btn-primary"
+                        disabled={loading || !drawnShape}
+                      >
+                        {loading ? "Creating..." : "Create Area"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="add-area-form-right">
+                  <div className="add-area-map-instructions">
+                    <h4>🗺️ Draw Area Boundary</h4>
+                    <p>
+                      Use the drawing tools to create a {areaType} on the map.
+                      This defines where plants can be placed.
+                    </p>
+                  </div>
+                  <div ref={mapRef} className="add-area-map"></div>
+                </div>
+              </div>
+            )}
+
+            {step === "image" && (
+              <div className="add-area-form-container">
+                <div className="add-area-form-left">
+                  <form onSubmit={handleSubmit}>
+                    <div className="add-area-form-group">
+                      <label>Area Name *</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g., South Garden"
+                        required
+                      />
+                    </div>
+
+                    <div className="add-area-form-group">
+                      <label>Description</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Optional description"
+                        rows="3"
+                      />
+                    </div>
+
+                    <div className="add-area-form-group">
+                      <label>Upload Image (JPG/PNG, max 5MB) *</label>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        onChange={handleImageUpload}
+                        required
+                      />
+                      {uploadedImage && (
+                        <small style={{ display: "block", marginTop: "5px" }}>
+                          ✓ {uploadedImage.name} selected
+                        </small>
+                      )}
+                    </div>
+
+                    <div className="add-area-modal-actions">
+                      <button
+                        type="button"
+                        className="add-area-modal-btn add-area-modal-btn-cancel"
+                        onClick={() => {
+                          setStep("choice");
+                          setDisplayType(null);
+                          setError("");
+                        }}
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        className="add-area-modal-btn add-area-modal-btn-primary"
+                        disabled={loading || !uploadedImage}
+                      >
+                        {loading ? "Creating..." : "Create Area"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="add-area-form-right">
+                  <div className="add-area-map-instructions">
+                    <h4>🖼️ Image Preview</h4>
+                    {imagePreview ? (
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="image-preview"
+                      />
+                    ) : (
+                      <p>Image preview will appear here</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -14,6 +14,7 @@ export default function AddPlantButton({
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [wateringFreq, setWateringFreq] = useState("1");
+  const [wateringVolume, setWateringVolume] = useState("");
   const [status, setStatus] = useState("healthy");
   const [soilMoisture, setSoilMoisture] = useState("");
   const [notes, setNotes] = useState("");
@@ -128,6 +129,9 @@ export default function AddPlantButton({
           lat: mapCoordinates.lat,
           lng: mapCoordinates.lng,
           wateringFrequencyDays: parseInt(wateringFreq),
+          wateringVolumeLiters: wateringVolume
+            ? parseFloat(wateringVolume)
+            : null,
           status,
           soilMoisture: soilMoisture ? parseInt(soilMoisture) : null,
           notes,
@@ -144,6 +148,7 @@ export default function AddPlantButton({
       setName("");
       setType("");
       setWateringFreq("1");
+      setWateringVolume("");
       setStatus("healthy");
       setSoilMoisture("");
       setNotes("");
@@ -222,6 +227,18 @@ export default function AddPlantButton({
                       onChange={(e) => setWateringFreq(e.target.value)}
                       min="1"
                       required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Watering Volume (liters)</label>
+                    <input
+                      type="number"
+                      value={wateringVolume}
+                      onChange={(e) => setWateringVolume(e.target.value)}
+                      min="0"
+                      step="0.1"
+                      placeholder="e.g., 2.5"
                     />
                   </div>
 

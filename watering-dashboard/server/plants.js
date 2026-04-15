@@ -129,6 +129,7 @@ router.post("/", requireAuth, (req, res) => {
     lat,
     lng,
     wateringFrequencyDays,
+    wateringVolumeLiters,
     status,
     soilMoisture,
     notes,
@@ -174,12 +175,10 @@ router.post("/", requireAuth, (req, res) => {
       userRole !== ROLES.ADMIN &&
       !hasAreaUpdatePermission(userRole, accessResults[0].permission)
     ) {
-      return res
-        .status(403)
-        .json({
-          error:
-            "You do not have permission to add plants to this area. Your access is read-only.",
-        });
+      return res.status(403).json({
+        error:
+          "You do not have permission to add plants to this area. Your access is read-only.",
+      });
     }
 
     // First, get the area to validate coordinates are within bounds
@@ -223,8 +222,8 @@ router.post("/", requireAuth, (req, res) => {
 
       // Insert plant if validation passed
       const plantSql = `
-        INSERT INTO plants (area_id, name, type, lat, lng, watering_frequency_days, status, soil_moisture, notes, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO plants (area_id, name, type, lat, lng, watering_frequency_days, watering_volume_liters, status, soil_moisture, notes, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       db.query(
@@ -236,6 +235,7 @@ router.post("/", requireAuth, (req, res) => {
           lat,
           lng,
           wateringFrequencyDays || 1,
+          wateringVolumeLiters || null,
           status || "healthy",
           soilMoisture || null,
           notes || null,
@@ -287,6 +287,7 @@ router.put("/:id", requireAuth, (req, res) => {
     lat,
     lng,
     wateringFrequencyDays,
+    wateringVolumeLiters,
     status,
     soilMoisture,
     notes,
@@ -329,12 +330,10 @@ router.put("/:id", requireAuth, (req, res) => {
 
         // Check if they have update permission
         if (!hasAreaUpdatePermission(userRole, accessResults[0].permission)) {
-          return res
-            .status(403)
-            .json({
-              error:
-                "You do not have permission to update plants in this area. Your access is read-only.",
-            });
+          return res.status(403).json({
+            error:
+              "You do not have permission to update plants in this area. Your access is read-only.",
+          });
         }
 
         performUpdate();
@@ -347,7 +346,7 @@ router.put("/:id", requireAuth, (req, res) => {
       const sql = `
         UPDATE plants 
         SET name = ?, type = ?, lat = ?, lng = ?, watering_frequency_days = ?, 
-            status = ?, soil_moisture = ?, notes = ?, last_watered = ?
+            watering_volume_liters = ?, status = ?, soil_moisture = ?, notes = ?, last_watered = ?
         WHERE id = ?
       `;
 
@@ -359,6 +358,7 @@ router.put("/:id", requireAuth, (req, res) => {
           lat,
           lng,
           wateringFrequencyDays || 1,
+          wateringVolumeLiters || null,
           status || "healthy",
           soilMoisture || null,
           notes || null,
@@ -429,12 +429,10 @@ router.delete("/:id", requireAuth, (req, res) => {
         }
 
         if (!hasAreaUpdatePermission(userRole, accessResults[0].permission)) {
-          return res
-            .status(403)
-            .json({
-              error:
-                "You do not have permission to delete plants in this area. Your access is read-only.",
-            });
+          return res.status(403).json({
+            error:
+              "You do not have permission to delete plants in this area. Your access is read-only.",
+          });
         }
 
         performDelete();

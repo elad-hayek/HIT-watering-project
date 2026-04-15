@@ -135,12 +135,28 @@ export default function EditAreaModal({ area, onClose, onUpdate, user }) {
           </div>
 
           <div className="form-group">
-            <label>Area Type *</label>
-            <select value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="rectangle">Rectangle</option>
-              <option value="polygon">Polygon</option>
-            </select>
+            <label>Display Type</label>
+            <div className="display-type-badge">
+              {area?.photo_display_type === "image"
+                ? "🖼️ Image Area"
+                : "🗺️ Map Area"}
+            </div>
+            <small
+              style={{ display: "block", marginTop: "5px", color: "#999" }}
+            >
+              This is immutable. To change the type, create a new area.
+            </small>
           </div>
+
+          {area?.photo_display_type === "map" && (
+            <div className="form-group">
+              <label>Area Type *</label>
+              <select value={type} onChange={(e) => setType(e.target.value)}>
+                <option value="rectangle">Rectangle</option>
+                <option value="polygon">Polygon</option>
+              </select>
+            </div>
+          )}
 
           <div className="modal-actions">
             {canDelete && (

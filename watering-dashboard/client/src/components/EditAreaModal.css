@@ -288,3 +288,22 @@
     font-size: 1.3em;
   }
 }
+
+/* Display type badge styling */
+.display-type-badge {
+  display: inline-block;
+  padding: 8px 14px;
+  background: #e8f5e9;
+  border: 1px solid #4caf50;
+  border-radius: 6px;
+  color: #2e7d32;
+  font-weight: 600;
+  font-size: 0.95em;
+  margin-bottom: 8px;
+}
+
+[data-theme="dark"] .display-type-badge {
+  background: #1b5e20;
+  border-color: #4caf50;
+  color: #81c784;
+}

@@ -21,7 +21,36 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + "-" + file.originalname);
   },
 });
-const upload = multer({ storage });
+
+// File filter for image uploads (5MB max, JPG/PNG only)
+const fileFilter = (req, file, cb) => {
+  const allowedMimes = ["image/jpeg", "image/png"];
+  const maxSize = 5 * 1024 * 1024; // 5MB
+
+  if (!allowedMimes.includes(file.mimetype)) {
+    return cb(
+      new Error(
+        "Invalid file type. Only JPEG and PNG images are allowed."
+      ),
+      false
+    );
+  }
+
+  if (req.file && req.file.size > maxSize) {
+    return cb(
+      new Error("File size exceeds 5MB limit. Please upload a smaller image."),
+      false
+    );
+  }
+
+  cb(null, true);
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
 
 // GET /api/areas - Get areas based on user role
 // Admin: sees all areas (with 'update' permission)
@@ -98,7 +127,7 @@ router.get("/:id", requireAuth, (req, res) => {
 // POST /api/areas - Create new area
 // Any authenticated user can create areas (will become area manager for that area)
 router.post("/", requireAuth, (req, res) => {
-  const { name, description, type, bounds_json, positions } = req.body;
+  const { name, description, type, bounds_json, positions, photo_display_type } = req.body;
   const userId = req.userId;
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
@@ -107,9 +136,19 @@ router.post("/", requireAuth, (req, res) => {
     return res.status(400).json({ error: "Name and type are required" });
   }
 
+  // photo_display_type is required (must be 'map' or 'image')
+  if (!photo_display_type || !["map", "image"].includes(photo_display_type)) {
+    return res
+      .status(400)
+      .json({
+        error:
+          "photo_display_type is required and must be 'map' or 'image'",
+      });
+  }
+
   const sql = `
-        INSERT INTO areas (name, description, type, bounds_json, positions, created_by)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO areas (name, description, type, bounds_json, positions, created_by, photo_display_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
   db.query(
@@ -121,6 +160,7 @@ router.post("/", requireAuth, (req, res) => {
       bounds_json ? JSON.stringify(bounds_json) : null,
       positions ? JSON.stringify(positions) : null,
       userId,
+      photo_display_type,
     ],
     async (err, result) => {
       if (err) {
@@ -203,22 +243,45 @@ router.put("/:id", requireAuth, (req, res) => {
   }
 
   function performUpdate() {
-    const sql = `
-        UPDATE areas 
-        SET name = ?, description = ?, type = ?, bounds_json = ?, positions = ?
-        WHERE id = ?
-    `;
+    // First check the current area to get photo_display_type
+    const checkSql = `SELECT photo_display_type FROM areas WHERE id = ? LIMIT 1`;
+    db.query(checkSql, [id], (checkErr, checkResults) => {
+      if (checkErr || checkResults.length === 0) {
+        return res.status(500).json({ error: "Database error" });
+      }
 
-    db.query(
-      sql,
-      [
-        name,
-        description || null,
-        type,
-        bounds_json ? JSON.stringify(bounds_json) : null,
-        positions ? JSON.stringify(positions) : null,
-        id,
-      ],
+      const currentDisplayType = checkResults[0].photo_display_type;
+
+      // For image areas, only allow name/description updates (no boundary changes)
+      let updateSql;
+      let updateParams;
+
+      if (currentDisplayType === "image") {
+        // Image areas: only update name and description
+        updateSql = `
+          UPDATE areas 
+          SET name = ?, description = ?
+          WHERE id = ?
+        `;
+        updateParams = [name, description || null, id];
+      } else {
+        // Map areas: allow all updates
+        updateSql = `
+          UPDATE areas 
+          SET name = ?, description = ?, type = ?, bounds_json = ?, positions = ?
+          WHERE id = ?
+        `;
+        updateParams = [
+          name,
+          description || null,
+          type,
+          bounds_json ? JSON.stringify(bounds_json) : null,
+          positions ? JSON.stringify(positions) : null,
+          id,
+        ];
+      }
+
+      db.query(updateSql, updateParams,
       async (err) => {
         if (err) {
           console.error("❌ Update area error:", err);
@@ -340,29 +403,50 @@ router.post(
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Check access and permission for area managers and users
-    if (userRole !== ROLES.ADMIN) {
-      const checkAccessSql = `SELECT permission FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
-      db.query(checkAccessSql, [userId, id], (checkErr, checkResults) => {
-        if (checkErr || checkResults.length === 0) {
-          return res
-            .status(403)
-            .json({ error: "You do not have access to this area" });
-        }
-        // Check if permission is 'update'
-        if (!hasAreaUpdatePermission(userRole, checkResults[0].permission)) {
-          return res.status(403).json({
-            error:
-              "You do not have permission to update this area. Your access is read-only.",
-          });
-        }
-        performUpload();
-      });
-    } else {
-      performUpload();
-    }
+    // Check if area is image-type
+    const checkTypeSql = `SELECT photo_display_type FROM areas WHERE id = ? LIMIT 1`;
+    db.query(checkTypeSql, [id], (typeErr, typeResults) => {
+      if (typeErr || typeResults.length === 0) {
+        return res.status(404).json({ error: "Area not found" });
+      }
 
-    function performUpload() {
+      if (typeResults[0].photo_display_type !== "image") {
+        return res.status(400).json({
+          error:
+            "Photos can only be uploaded to image-type areas, not map areas",
+        });
+      }
+
+      continueUpload();
+    });
+
+    function continueUpload() {
+
+      // Check access and permission for area managers and users
+      if (userRole !== ROLES.ADMIN) {
+        const checkAccessSql = `SELECT permission FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
+        db.query(checkAccessSql, [userId, id], (checkErr, checkResults) => {
+          if (checkErr || checkResults.length === 0) {
+            return res
+              .status(403)
+              .json({ error: "You do not have access to this area" });
+          }
+          // Check if permission is 'update'
+          if (
+            !hasAreaUpdatePermission(userRole, checkResults[0].permission)
+          ) {
+            return res.status(403).json({
+              error:
+                "You do not have permission to update this area. Your access is read-only.",
+            });
+          }
+          performUpload();
+        });
+      } else {
+        performUpload();
+      }
+
+      function performUpload() {
       const photoUrl = `/uploads/areas/${req.file.filename}`;
 
       const sql = `UPDATE areas SET photo_url = ? WHERE id = ?`;
