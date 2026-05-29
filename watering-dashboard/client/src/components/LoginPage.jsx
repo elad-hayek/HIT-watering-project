@@ -99,13 +99,6 @@ export default function LoginPage({ setUser }) {
           </p>
         </div>
 
-        <div className="demo-info">
-          <p>
-            <strong>Demo Credentials:</strong>
-          </p>
-          <p>ID: 340969674</p>
-          <p>Password: 123456</p>
-        </div>
       </div>
     </div>
   );

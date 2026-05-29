@@ -201,9 +201,7 @@ export default function AddAreaButton({ onAreaCreated, user }) {
     setLoading(true);
     try {
       const boundsJson =
-        areaType === "rectangle"
-          ? JSON.stringify(drawnShape.bounds)
-          : JSON.stringify(drawnShape.positions);
+        areaType === "rectangle" ? drawnShape.bounds : drawnShape.positions;
 
       const response = await fetch(`${API_BASE_URL}/api/areas`, {
         method: "POST",
@@ -218,10 +216,7 @@ export default function AddAreaButton({ onAreaCreated, user }) {
           description,
           type: areaType,
           bounds_json: boundsJson,
-          positions:
-            areaType === "polygon"
-              ? JSON.stringify(drawnShape.positions)
-              : null,
+          positions: areaType === "polygon" ? drawnShape.positions : null,
           photo_display_type: "map",
         }),
       });

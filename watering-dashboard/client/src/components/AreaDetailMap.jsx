@@ -3,6 +3,18 @@ import "./AreaDetailMap.css";
 import { getStatusDisplay } from "../utils/statusMapping";
 import { API_BASE_URL } from "../config";
 
+const parseJsonValue = (value) => {
+  let parsed = value;
+  for (let i = 0; i < 2 && typeof parsed === "string"; i++) {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch (_) {
+      return null;
+    }
+  }
+  return parsed;
+};
+
 export default function AreaDetailMap({ area, plants, user, onMapClick }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -312,11 +324,10 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
           // Parse area bounds if available and draw boundary
           if (area && area.bounds_json) {
             try {
-              const bounds = JSON.parse(area.bounds_json);
-              if (bounds && bounds.length === 2) {
-                map.fitBounds(bounds);
-                // Draw rectangle boundary
-                if (area.type === "rectangle") {
+              const bounds = parseJsonValue(area.bounds_json);
+              if (Array.isArray(bounds)) {
+                if (area.type === "rectangle" && bounds.length === 2) {
+                  map.fitBounds(bounds);
                   L.rectangle(bounds, {
                     color: "#2d5016",
                     weight: 3,
@@ -325,7 +336,8 @@ export default function AreaDetailMap({ area, plants, user, onMapClick }) {
                   }).addTo(map);
                 }
                 // Draw polygon boundary
-                else if (area.type === "polygon") {
+                else if (area.type === "polygon" && bounds.length >= 3) {
+                  map.fitBounds(bounds);
                   L.polygon(bounds, {
                     color: "#2d5016",
                     weight: 3,

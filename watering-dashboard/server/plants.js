@@ -12,11 +12,18 @@ const { requireAuth, requireRole } = require("./rbacMiddleware");
 
 // Helper functions for geometry
 function parseJSON(str) {
-  try {
-    return str ? JSON.parse(str) : null;
-  } catch {
-    return null;
+  if (!str) return null;
+
+  let parsed = str;
+  for (let i = 0; i < 2 && typeof parsed === "string"; i++) {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return null;
+    }
   }
+
+  return parsed;
 }
 
 function pointInRect([lat, lng], bounds) {
@@ -37,8 +44,8 @@ function pointInPolygon([lat, lng], positions) {
     const [lat1, lng1] = positions[i];
     const [lat2, lng2] = positions[j];
     const intersect =
-      lat1 > lng !== lat2 > lng &&
-      lng < ((lng2 - lng1) * (lat - lat1)) / (lat2 - lat1 || 1e-12) + lng1;
+      (lng1 > lng) !== (lng2 > lng) &&
+      lat < ((lat2 - lat1) * (lng - lng1)) / (lng2 - lng1 || 1e-12) + lat1;
     if (intersect) inside = !inside;
   }
   return inside;

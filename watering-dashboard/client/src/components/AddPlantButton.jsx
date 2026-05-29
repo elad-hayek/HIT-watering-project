@@ -2,6 +2,18 @@ import React, { useState, useEffect, useCallback } from "react";
 import "./AddPlantButton.css";
 import { API_BASE_URL } from "../config";
 
+const parseJsonValue = (value) => {
+  let parsed = value;
+  for (let i = 0; i < 2 && typeof parsed === "string"; i++) {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch (_) {
+      return null;
+    }
+  }
+  return parsed;
+};
+
 export default function AddPlantButton({
   areaId,
   area,
@@ -20,13 +32,38 @@ export default function AddPlantButton({
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const isImageArea = area?.photo_display_type === "image";
+  const hasMapCoordinates =
+    Number.isFinite(mapCoordinates?.lat) && Number.isFinite(mapCoordinates?.lng);
+  const hasImageCoordinates =
+    Number.isFinite(mapCoordinates?.imageX) &&
+    Number.isFinite(mapCoordinates?.imageY);
+  const hasValidCoordinates = isImageArea
+    ? hasImageCoordinates
+    : hasMapCoordinates;
+
+  const getLocationDisplay = () => {
+    if (isImageArea && hasImageCoordinates) {
+      return `(${mapCoordinates.imageX}, ${mapCoordinates.imageY}) pixels`;
+    }
+
+    if (!isImageArea && hasMapCoordinates) {
+      return `(${mapCoordinates.lat.toFixed(4)}, ${mapCoordinates.lng.toFixed(4)})`;
+    }
+
+    return "";
+  };
 
   // Check if a point is inside a rectangle boundary
   const isPointInRectangle = (lat, lng, bounds) => {
     const [sw, ne] = bounds;
     const [swLat, swLng] = sw;
     const [neLat, neLng] = ne;
-    return lat >= swLat && lat <= neLat && lng >= swLng && lng <= neLng;
+    const south = Math.min(swLat, neLat);
+    const north = Math.max(swLat, neLat);
+    const west = Math.min(swLng, neLng);
+    const east = Math.max(swLng, neLng);
+    return lat >= south && lat <= north && lng >= west && lng <= east;
   };
 
   // Check if a point is inside a polygon using ray casting algorithm
@@ -36,11 +73,8 @@ export default function AddPlantButton({
       const [lat1, lng1] = polygon[i];
       const [lat2, lng2] = polygon[j];
       const intersect =
-        lng > Math.min(lng1, lng2) &&
-        lng <= Math.max(lng1, lng2) &&
-        lat <= Math.max(lat1, lat2) &&
-        (lng1 === lng2 ||
-          lat < ((lat2 - lat1) * (lng - lng1)) / (lng2 - lng1) + lat1);
+        (lng1 > lng) !== (lng2 > lng) &&
+        lat < ((lat2 - lat1) * (lng - lng1)) / (lng2 - lng1 || 1e-12) + lat1;
       if (intersect) inside = !inside;
     }
     return inside;
@@ -52,7 +86,7 @@ export default function AddPlantButton({
       if (!area || !area.bounds_json) return true; // Allow if no bounds defined
 
       try {
-        const bounds = JSON.parse(area.bounds_json);
+        const bounds = parseJsonValue(area.bounds_json);
         if (!bounds) return true;
 
         if (area.type === "rectangle" && bounds.length === 2) {
@@ -71,16 +105,21 @@ export default function AddPlantButton({
 
   // Clear error when modal opens for a fresh state
   useEffect(() => {
-    if (showModal && !mapCoordinates) {
+    if (showModal && !hasValidCoordinates) {
       setError(""); // Clear error when opening modal without a location
     }
-  }, [showModal, mapCoordinates]);
+  }, [showModal, hasValidCoordinates]);
 
   // Validate coordinates only after they've been set (user clicked map or image)
   useEffect(() => {
     if (mapCoordinates) {
+      if (!hasValidCoordinates) {
+        setError("");
+        return;
+      }
+
       // Only validate map area boundaries for GPS coordinates
-      if (mapCoordinates.lat != null && mapCoordinates.lng != null) {
+      if (!isImageArea && hasMapCoordinates) {
         if (!isWithinArea(mapCoordinates.lat, mapCoordinates.lng)) {
           setError(
             "❌ Plant location is OUTSIDE the area boundary. Please click inside the area on the map.",
@@ -88,13 +127,9 @@ export default function AddPlantButton({
         } else {
           setError(""); // Clear error if coordinates are valid
         }
-      } else if (
-        mapCoordinates.imageX != null &&
-        mapCoordinates.imageY != null
-      ) {
+      } else if (isImageArea && hasImageCoordinates) {
         // Image area coordinates - validate against image dimensions
         if (
-          area?.photo_display_type === "image" &&
           area?.photo_width &&
           area?.photo_height
         ) {
@@ -117,7 +152,15 @@ export default function AddPlantButton({
         setError("");
       }
     }
-  }, [mapCoordinates, area, isWithinArea]);
+  }, [
+    mapCoordinates,
+    area,
+    isWithinArea,
+    isImageArea,
+    hasMapCoordinates,
+    hasImageCoordinates,
+    hasValidCoordinates,
+  ]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -128,8 +171,8 @@ export default function AddPlantButton({
       return;
     }
 
-    if (!mapCoordinates) {
-      if (area?.photo_display_type === "image") {
+    if (!hasValidCoordinates) {
+      if (isImageArea) {
         setError("Please click on the image to set the plant location first");
       } else {
         setError("Please click on the map to set the plant location first");
@@ -139,9 +182,8 @@ export default function AddPlantButton({
 
     // For map areas, check if coordinates are within area bounds
     if (
-      area?.photo_display_type !== "image" &&
-      mapCoordinates.lat != null &&
-      mapCoordinates.lng != null
+      !isImageArea &&
+      hasMapCoordinates
     ) {
       if (!isWithinArea(mapCoordinates.lat, mapCoordinates.lng)) {
         setError(
@@ -153,9 +195,8 @@ export default function AddPlantButton({
 
     // For image areas, check if coordinates are within image bounds
     if (
-      area?.photo_display_type === "image" &&
-      mapCoordinates.imageX != null &&
-      mapCoordinates.imageY != null
+      isImageArea &&
+      hasImageCoordinates
     ) {
       if (area?.photo_width && area?.photo_height) {
         if (
@@ -190,16 +231,15 @@ export default function AddPlantButton({
 
       // Add coordinates based on area type and what was captured
       if (
-        area?.photo_display_type === "image" &&
-        mapCoordinates.imageX != null &&
-        mapCoordinates.imageY != null
+        isImageArea &&
+        hasImageCoordinates
       ) {
         // Image area: use pixel coordinates
         body.imageXCoordinate = mapCoordinates.imageX;
         body.imageYCoordinate = mapCoordinates.imageY;
         body.lat = null;
         body.lng = null;
-      } else if (mapCoordinates.lat != null && mapCoordinates.lng != null) {
+      } else if (!isImageArea && hasMapCoordinates) {
         // Map area: use lat/lng coordinates
         body.lat = mapCoordinates.lat;
         body.lng = mapCoordinates.lng;
@@ -268,20 +308,17 @@ export default function AddPlantButton({
 
             {error && <div className="error-message">{error}</div>}
 
-            {!mapCoordinates ? (
+            {!hasValidCoordinates ? (
               <div className="info-message">
                 ℹ️ Please close this form, click on the{" "}
-                {area?.photo_display_type === "image" ? "image" : "map"} to mark
+                {isImageArea ? "image" : "map"} to mark
                 the plant location, then click "Add Plant" again to fill in the
                 details
               </div>
             ) : !error?.includes("OUTSIDE") ? (
               <>
                 <div className="success-message">
-                  ✓ Location selected:{" "}
-                  {area?.photo_display_type === "image"
-                    ? `(${mapCoordinates.imageX}, ${mapCoordinates.imageY}) pixels`
-                    : `(${mapCoordinates.lat.toFixed(4)}, ${mapCoordinates.lng.toFixed(4)})`}
+                  ✓ Location selected: {getLocationDisplay()}
                 </div>
 
                 <form onSubmit={handleSubmit}>

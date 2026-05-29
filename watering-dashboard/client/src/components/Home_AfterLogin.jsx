@@ -68,6 +68,7 @@ export default function HomeAfterLogin({ user }) {
   };
 
   const handleSelectArea = (area) => {
+    setMapCoordinates(null);
     setSelectedArea(area);
     loadPlants(area.id);
   };

@@ -1,108 +1,99 @@
-# Watering Dashboard
+# README
 
-A comprehensive system for managing watering zones and plants with interactive maps and user management.
+# Watering Dashboard - Setup Guide
 
-## Features
+A full-stack web application for managing watering zones and plants with interactive maps - built with React + Leaflet (frontend) and Node.js + Express + MySQL (backend).
 
-1. ✅ User Registration and Login with Hierarchy
-2. ✅ Create and Manage Areas (Zones)
-3. ✅ Upload Maps/Images for Areas
-4. ✅ Place Plants/Watering Stations on Interactive Maps
-5. ✅ Full CRUD Operations for Areas and Plants
-6. ✅ Audit Logging
-7. ✅ Professional UI/UX Design
+Supports creating and editing areas (zones), placing plants/watering stations on maps, photo uploads, and an audit log for all user actions.
 
-## Tech Stack
+## 1. Requirements
 
-- **Frontend**: React, React Router, Leaflet, Leaflet-Draw
-- **Backend**: Express.js, Node.js
-- **Database**: MySQL
-- **File Upload**: Multer
-- **CORS**: Enabled for cross-origin requests
+Make sure the following are installed:
 
-## Installation
+- Node.js (v18 or newer)
+- npm (comes with Node)
+- MySQL Server
+- Git (optional, for cloning)
 
-### Prerequisites
+## 2. Backend/Frontend Setup
 
-- Node.js 14+
-- MySQL 8.0+
-
-### Setup
-
-1. **Create Database**
+### Step 1 - Install dependencies
 
 ```bash
-mysql -u root < watering_db.sql
+npm install i
 ```
 
-2. **Server Setup**
+### Step 2 - Create `.env` file
+
+Create the `.env` file in the server directory:
+
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_NAME=watering_db
+PORT=3000
+NODE_ENV=development
+```
+
+### Step 3 - Create the database in MySQL
+
+```sql
+CREATE DATABASE watering_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### Step 4 - Run database migrations
+
+```bash
+cd database
+# On Windows
+powershell -ExecutionPolicy Bypass -File run_migrations.ps1
+
+# On Linux/Mac
+bash run_migrations.sh
+```
+
+### Step 5 - Start backend
 
 ```bash
 cd server
-cp .env.example .env
-# Edit .env with your MySQL credentials
 npm install
-npm run dev
+node server.js
 ```
 
-3. **Client Setup**
+## 3. Frontend Setup (React)
+
+### Step 1 - Go to frontend folder
 
 ```bash
 cd client
-npm install
+```
+
+### Step 2 - Start frontend
+
+```bash
 npm start
 ```
 
-## Project Structure
+If using Vite:
 
-```
-watering-dashboard/
-├── client/                 # React Frontend
-│   ├── src/
-│   │   ├── components/     # React Components
-│   │   ├── utils/          # Utility Functions
-│   │   └── App.jsx         # Main App Component
-│   └── package.json
-├── server/                 # Express Backend
-│   ├── Database.js         # MySQL Connection
-│   ├── areas.js            # Areas API
-│   ├── plants.js           # Plants API
-│   ├── users.js            # Users API
-│   ├── logs.js             # Audit Logs
-│   ├── server.js           # Main Server
-│   └── package.json
-└── README.md
+```bash
+npm run dev
 ```
 
-## API Endpoints
+## 4. Environment Notes
 
-### Users
+- The `.env` file must exist before running the backend.
+- Backend runs on `http://localhost:3000`
+- Frontend runs on `http://localhost:5173` (Vite) or `3000` (Create React App).
+- CORS is enabled for local development.
 
-- `POST /api/users/register` - Register new user
-- `POST /api/users/login` - Login user
-- `GET /api/users/:id` - Get user info
+## 5. Usage Flow
 
-### Areas
-
-- `GET /api/areas` - Get all areas
-- `POST /api/areas` - Create new area
-- `GET /api/areas/:id` - Get area details
-- `PUT /api/areas/:id` - Update area
-- `DELETE /api/areas/:id` - Delete area
-- `POST /api/areas/:id/photo` - Upload area photo
-
-### Plants
-
-- `GET /api/plants` - Get all plants
-- `POST /api/plants` - Create new plant
-- `GET /api/plants/:id` - Get plant details
-- `PUT /api/plants/:id` - Update plant
-- `DELETE /api/plants/:id` - Delete plant
-
-### Audit Logs
-
-- `GET /api/audit` - Get audit logs
-
-## License
-
-MIT
+1. Register a user account
+2. Login with your credentials
+3. The system opens the dashboard
+4. Add or edit watering zones (areas) using the map interface
+5. Place plants/watering stations on the interactive map
+6. Upload photos for areas and plants
+7. Check audit logs for all system actions

@@ -53,6 +53,21 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
+function normalizeJsonValue(value) {
+  if (value == null || value === "") return null;
+
+  let normalized = value;
+  for (let i = 0; i < 2 && typeof normalized === "string"; i++) {
+    try {
+      normalized = JSON.parse(normalized);
+    } catch (_) {
+      break;
+    }
+  }
+
+  return JSON.stringify(normalized);
+}
+
 // GET /api/areas - Get areas based on user role
 // Admin: sees all areas (with 'update' permission)
 // Area Manager & User: sees only assigned areas (with their assigned permission)
@@ -162,8 +177,8 @@ router.post("/", requireAuth, (req, res) => {
       name,
       description || null,
       type,
-      bounds_json ? JSON.stringify(bounds_json) : null,
-      positions ? JSON.stringify(positions) : null,
+      normalizeJsonValue(bounds_json),
+      normalizeJsonValue(positions),
       userId,
       photo_display_type,
     ],
@@ -280,8 +295,8 @@ router.put("/:id", requireAuth, (req, res) => {
           name,
           description || null,
           type,
-          bounds_json ? JSON.stringify(bounds_json) : null,
-          positions ? JSON.stringify(positions) : null,
+          normalizeJsonValue(bounds_json),
+          normalizeJsonValue(positions),
           id,
         ];
       }
