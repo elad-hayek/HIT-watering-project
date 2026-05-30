@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./EditPlantModal.css";
 import { API_BASE_URL } from "../config";
+import { toCalendarDate } from "../utils/calendarDate";
 
 export default function EditPlantModal({ plant, onClose, onUpdate, user }) {
   const [name, setName] = useState("");
@@ -29,9 +30,7 @@ export default function EditPlantModal({ plant, onClose, onUpdate, user }) {
       setStatus(plant.status || "healthy");
       setSoilMoisture(plant.soil_moisture || "");
       setNotes(plant.notes || "");
-      setLastWatered(
-        plant.last_watered ? plant.last_watered.split(" ")[0] : "",
-      );
+      setLastWatered(toCalendarDate(plant.last_watered));
       setImageXCoordinate(plant.image_x_coordinate || "");
       setImageYCoordinate(plant.image_y_coordinate || "");
     }

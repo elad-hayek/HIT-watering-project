@@ -26,6 +26,46 @@ function parseJSON(str) {
   return parsed;
 }
 
+function formatCalendarDate(value) {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  const match = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
+}
+
+function serializePlant(plant) {
+  return {
+    ...plant,
+    last_watered: formatCalendarDate(plant.last_watered),
+  };
+}
+
+function normalizeLastWatered(value) {
+  if (value == null || value === "") return null;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return undefined;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return `${value} 00:00:00`;
+}
+
 function pointInRect([lat, lng], bounds) {
   if (!Array.isArray(bounds) || bounds.length !== 2) return false;
   const [south, west] = bounds[0];
@@ -86,7 +126,7 @@ router.get("/", requireAuth, (req, res) => {
       return res.status(500).json({ error: "Database error" });
     }
 
-    res.json({ plants: results });
+    res.json({ plants: results.map(serializePlant) });
   });
 });
 
@@ -122,7 +162,7 @@ router.get("/:id", requireAuth, (req, res) => {
         .json({ error: "Plant not found or access denied" });
     }
 
-    res.json({ plant: results[0] });
+    res.json({ plant: serializePlant(results[0]) });
   });
 });
 
@@ -336,6 +376,13 @@ router.put("/:id", requireAuth, (req, res) => {
   const userRole = req.userRole;
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
+  const normalizedLastWatered = normalizeLastWatered(lastWatered);
+
+  if (normalizedLastWatered === undefined) {
+    return res.status(400).json({
+      error: "Last watered must be a valid date in YYYY-MM-DD format",
+    });
+  }
 
   if (!canManageAreas(userRole)) {
     return res
@@ -403,7 +450,7 @@ router.put("/:id", requireAuth, (req, res) => {
           status || "healthy",
           soilMoisture || null,
           notes || null,
-          lastWatered || null,
+          normalizedLastWatered,
           id,
         ],
         async (err) => {

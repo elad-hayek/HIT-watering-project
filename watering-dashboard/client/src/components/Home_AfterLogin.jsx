@@ -7,6 +7,7 @@ import EditPlantModal from "./EditPlantModal";
 import AreaDetailMap from "./AreaDetailMap";
 import AreaUsersModal from "./AreaUsersModal";
 import { getStatusDisplay } from "../utils/statusMapping";
+import { formatCalendarDate } from "../utils/calendarDate";
 import { API_BASE_URL } from "../config";
 import {
   hasUpdatePermission,
@@ -305,9 +306,7 @@ export default function HomeAfterLogin({ user }) {
                             {plant.last_watered && (
                               <p>
                                 <strong>Last Watered:</strong>{" "}
-                                {new Date(
-                                  plant.last_watered,
-                                ).toLocaleDateString()}
+                                {formatCalendarDate(plant.last_watered)}
                               </p>
                             )}
                             {plant.soil_moisture !== null && (
