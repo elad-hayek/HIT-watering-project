@@ -9,7 +9,6 @@ const imageSize = require("image-size").default;
 const { writeAudit } = require("./logs");
 const {
   ROLES,
-  canManageAreas,
   canViewAllAreas,
   hasAreaUpdatePermission,
 } = require("./rbac");
@@ -233,12 +232,6 @@ router.put("/:id", requireAuth, (req, res) => {
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
-  if (!canManageAreas(userRole)) {
-    return res
-      .status(403)
-      .json({ error: "You do not have permission to update areas" });
-  }
-
   // For area managers and users, verify they have update permission
   let checkAccessSql;
   if (userRole !== ROLES.ADMIN) {
@@ -427,12 +420,6 @@ router.post(
     const actor = req.headers["x-user"] || "unknown";
     const ip =
       req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
-
-    if (!canManageAreas(userRole)) {
-      return res
-        .status(403)
-        .json({ error: "You do not have permission to manage areas" });
-    }
 
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
@@ -847,10 +834,15 @@ router.delete("/:id/users/:userId", requireAuth, (req, res) => {
 router.post("/:id/users/search", requireAuth, (req, res) => {
   const { id: areaId } = req.params;
   const { query } = req.body;
+  const normalizedQuery = String(query || "").trim();
   const managerId = req.userId;
   const managerRole = req.userRole;
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
+
+  if (!normalizedQuery) {
+    return res.status(400).json({ error: "Search query is required" });
+  }
 
   // Check if user is admin or area manager
   function checkManagerPermission(callback) {
@@ -892,11 +884,17 @@ router.post("/:id/users/search", requireAuth, (req, res) => {
       }
 
       // Get users not yet assigned to this area (excluding admins)
-      const searchTerm = `%${query}%`;
+      const searchTerm = `%${normalizedQuery}%`;
       const sql = `
         SELECT u.id, u.username, u.name, u.lastname, u.role
         FROM users u
-        WHERE (u.username LIKE ? OR u.name LIKE ? OR u.lastname LIKE ?)
+        WHERE (
+          u.username LIKE ?
+          OR u.name LIKE ?
+          OR u.lastname LIKE ?
+          OR CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.lastname, '')) LIKE ?
+          OR CONCAT(COALESCE(u.lastname, ''), ' ', COALESCE(u.name, '')) LIKE ?
+        )
         AND u.role != 'admin'
         AND u.id NOT IN (
           SELECT user_id FROM user_area_mapping WHERE area_id = ?
@@ -907,7 +905,7 @@ router.post("/:id/users/search", requireAuth, (req, res) => {
 
       db.query(
         sql,
-        [searchTerm, searchTerm, searchTerm, areaId],
+        [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, areaId],
         async (err2, results) => {
           if (err2) {
             console.error("❌ Search users for area error:", err2);
@@ -921,7 +919,7 @@ router.post("/:id/users/search", requireAuth, (req, res) => {
               entity_id: areaId,
               actor,
               ip,
-              details: { query },
+              details: { query: normalizedQuery },
             });
           } catch (_) {}
 

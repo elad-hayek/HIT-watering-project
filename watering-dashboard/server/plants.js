@@ -4,7 +4,6 @@ const db = require("./Database");
 const { writeAudit } = require("./logs");
 const {
   ROLES,
-  canManageAreas,
   canViewAllAreas,
   hasAreaUpdatePermission,
 } = require("./rbac");
@@ -187,12 +186,6 @@ router.post("/", requireAuth, (req, res) => {
   const userRole = req.userRole;
   const actor = req.headers["x-user"] || "unknown";
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
-
-  if (!canManageAreas(userRole)) {
-    return res
-      .status(403)
-      .json({ error: "You do not have permission to create plants" });
-  }
 
   // Validate: either lat/lng (for map areas) or image coordinates (for image areas)
   const hasMapCoords = lat != null && lng != null;
@@ -384,12 +377,6 @@ router.put("/:id", requireAuth, (req, res) => {
     });
   }
 
-  if (!canManageAreas(userRole)) {
-    return res
-      .status(403)
-      .json({ error: "You do not have permission to update plants" });
-  }
-
   // First get the plant to check area access
   const getPlantSql = `SELECT area_id FROM plants WHERE id = ? LIMIT 1`;
   db.query(getPlantSql, [id], (err, plantResults) => {
@@ -506,7 +493,7 @@ router.delete("/:id", requireAuth, (req, res) => {
     if (userRole === ROLES.ADMIN) {
       // Admin can delete any plant
       performDelete();
-    } else if (canManageAreas(userRole)) {
+    } else {
       // Area Members can delete if they have 'update' permission
       const checkAccessSql = `SELECT permission FROM user_area_mapping WHERE user_id = ? AND area_id = ? LIMIT 1`;
       db.query(checkAccessSql, [userId, areaId], (accessErr, accessResults) => {
@@ -525,11 +512,6 @@ router.delete("/:id", requireAuth, (req, res) => {
 
         performDelete();
       });
-    } else {
-      // Users cannot delete plants
-      return res
-        .status(403)
-        .json({ error: "You do not have permission to delete plants" });
     }
 
     function performDelete() {

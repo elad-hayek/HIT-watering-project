@@ -1,5 +1,3 @@
-# README
-
 # Watering Dashboard - Setup Guide
 
 A full-stack web application for managing watering zones and plants with interactive maps - built with React + Leaflet (frontend) and Node.js + Express + MySQL (backend).
@@ -39,21 +37,11 @@ NODE_ENV=development
 ### Step 3 - Create the database in MySQL
 
 ```sql
-CREATE DATABASE watering_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+run the schema.sql file in your MySQL server to create the watering_db database and tables.
 ```
 
-### Step 4 - Run database migrations
 
-```bash
-cd database
-# On Windows
-powershell -ExecutionPolicy Bypass -File run_migrations.ps1
-
-# On Linux/Mac
-bash run_migrations.sh
-```
-
-### Step 5 - Start backend
+### Step 4 - Start backend
 
 ```bash
 cd server
@@ -97,3 +85,12 @@ npm run dev
 5. Place plants/watering stations on the interactive map
 6. Upload photos for areas and plants
 7. Check audit logs for all system actions
+
+## 6. Important Notes
+The first admin user must be created directly in the database.
+After you register the first user
+use the following SQL command to change it's role to admin :
+
+```sql
+UPDATE users SET role = 'admin' WHERE username = 'your_id';
+```

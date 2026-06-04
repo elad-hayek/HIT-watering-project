@@ -62,7 +62,9 @@ export default function AreaUsersModal({ area, onClose, user }) {
 
   const handleSearchUsers = async (e) => {
     e.preventDefault();
-    if (!searchQuery.trim()) {
+    const trimmedQuery = searchQuery.trim();
+
+    if (!trimmedQuery) {
       setSearchResults([]);
       setHasAttemptedSearch(false);
       return;
@@ -81,13 +83,20 @@ export default function AreaUsersModal({ area, onClose, user }) {
             "x-user-role": user.role,
             "x-user": user.username,
           },
-          body: JSON.stringify({ query: searchQuery }),
+          body: JSON.stringify({ query: trimmedQuery }),
         },
       );
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to search users");
+      }
+
       setSearchResults(data.users || []);
+      setMessage("");
     } catch (err) {
       console.error("Error searching users:", err);
+      setSearchResults([]);
       setMessage("Error searching users: " + err.message);
     } finally {
       setSearching(false);
